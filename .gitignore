@@ -1,0 +1,10 @@
+#libs
+
+/include
+/lib
+glfw3.dll
+/.vscode
+
+
+#executables
+*.exe
