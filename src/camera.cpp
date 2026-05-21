@@ -2,7 +2,7 @@
 
 Camera::Camera()
 {
-    Position = glm::vec3(0.0f, 0.0f, 3.0f);
+    Position = glm::vec3(5.0f, 5.0f, 15.0f);
     Orientation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 
     FOV = 45.0f;
@@ -14,10 +14,10 @@ Camera::Camera()
 
 glm::mat4 Camera::GetViewMatrix() const
 {
-    glm::mat4 rotation = glm::mat4_cast(Orientation);
-    glm::mat4 transformation = glm::translate(glm::mat4(1.0f), -Position);
+    glm::mat4 rotation = glm::mat4_cast(glm::conjugate(Orientation));
+    glm::mat4 translation = glm::translate(glm::mat4(1.0f), -Position);
 
-    return rotation * transformation;
+    return rotation * translation;
 }
 
 glm::mat4 Camera::GetProjectionMatrix() const
@@ -30,10 +30,7 @@ void Camera::Rotate(float vertical, float horizontal)
     glm::quat Qvertical = glm::angleAxis(vertical, glm::vec3(0, 1, 0));
     glm::quat Qhorizontal = glm::angleAxis(horizontal, glm::vec3(1, 0, 0));
 
-    Orientation = Qvertical * Orientation;
-    Orientation = Orientation * Qhorizontal;
-
-    Orientation = glm::normalize(Orientation);
+    Orientation = glm::normalize(Qvertical * Qhorizontal * Orientation);
 }
 
 void Camera::MoveLocal(const glm::vec3 & dir)

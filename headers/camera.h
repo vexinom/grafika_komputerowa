@@ -24,5 +24,4 @@ class Camera
         void Rotate(float vertical, float horizontal);
         void MoveLocal(const glm::vec3 & dir);
 
-
 };
