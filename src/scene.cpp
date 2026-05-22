@@ -2,7 +2,8 @@
 
 void Scene::Init()
 {
-    terrain.CreatePlain(100);
+
+    terrain.Init();
 }
 
 void Scene::Render()

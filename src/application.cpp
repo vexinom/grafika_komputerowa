@@ -38,6 +38,7 @@ bool Application::Init()
     glEnable(GL_DEPTH_TEST);
     shader = new Shader("shaders/vertex.glsl", "shaders/fragment.glsl");
 
+    glDisable(GL_CULL_FACE);
     scene.Init();
 
     return true;
@@ -56,6 +57,8 @@ void Application::Run()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         shader->Use();
 
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
         glm::mat4 model = glm::mat4(1.0f);
         glm::mat4 view = scene.camera.GetViewMatrix();
         glm::mat4 projection = scene.camera.GetProjectionMatrix();
@@ -64,7 +67,12 @@ void Application::Run()
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "view"), 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
+        glUniform1i(glGetUniformLocation(shader->ID, "terrainWidth"), scene.terrain.width);
+        glUniform1i(glGetUniformLocation(shader->ID, "terrainHeight"), scene.terrain.height);
+
         scene.Render();
+
+        
 
 
         glfwSwapBuffers(window);
@@ -91,14 +99,14 @@ void Application::Keyboard_Events()
         scene.camera.Rotate(0.0f, 0.02f);
 
     if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-    scene.camera.MoveLocal(glm::vec3(0.0f, 0.0f, -0.05f));
+    scene.camera.MoveLocal(glm::vec3(0.0f, 3.5f, 0.0f));
 
     if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        scene.camera.MoveLocal(glm::vec3(0.0f, 0.0f, 0.05f));
+        scene.camera.MoveLocal(glm::vec3(0.0f, -3.5f, 0.0f));
 
     if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        scene.camera.MoveLocal(glm::vec3(-0.05f, 0.0f, 0.0f));
+        scene.camera.MoveLocal(glm::vec3(-3.5f, 0.0f, 0.0f));
 
     if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        scene.camera.MoveLocal(glm::vec3(0.05f, 0.0f, 0.0f));
+        scene.camera.MoveLocal(glm::vec3(3.5f, 0.0f, 0.0f));
 }

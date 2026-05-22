@@ -4,7 +4,7 @@
 /lib
 glfw3.dll
 /.vscode
-
-
+CMakeLists.txt
+/build
 #executables
 *.exe

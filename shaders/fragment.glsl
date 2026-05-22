@@ -2,7 +2,11 @@
 
 out vec4 FragColor;
 
+in float Height;
+
 void main()
 {
-    FragColor = vec4(0.2, 0.8, 0.4, 1.0);
+    float h = (Height + 16)/32.0f;	// shift and scale the height into a grayscale value
+    FragColor = vec4(h, h, h, 1.0);
 }
+
