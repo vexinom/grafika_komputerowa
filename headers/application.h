@@ -19,12 +19,24 @@ class Application
         bool Init();
         void Run();
         void Shutdown();
-        void Keyboard_Events();
+        void Input_Events();
 
-        Application(int _height, int _width)
+        Application(int _width, int _height)
         {
             height = _height;
             width = _width;
             shader = nullptr;
+
+            lastX = _width / 2.0;
+            lastY = _height / 2.0;
+
         }
+
+    private:
+        double lastX = 400.0;  
+        double lastY = 300.0;
+        bool firstMouse = true;
+
+        float deltaTime = 0.0f;
+        float lastFrame = 0.0f;
 };

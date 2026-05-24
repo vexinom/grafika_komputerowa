@@ -15,6 +15,6 @@ class Scene
 
         void Init();
         void Update();
-        void Render();
+        void Render(glm::mat4 viewProjection, glm::vec3 cameraPosition);
 
 };

@@ -6,6 +6,7 @@
 
 bool Application::Init()
 {
+    
     if(!glfwInit())
     {
         fprintf(stderr, "Failed to initialize GLFW\n");
@@ -27,12 +28,26 @@ bool Application::Init()
     }
 
     glfwMakeContextCurrent(window);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+    if (glfwRawMouseMotionSupported()) 
+    {
+        glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+    }
 
     if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         fprintf(stderr, "Failed to initialize GLAD\n");
         return false;
     }
+
+    if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
+        fprintf(stderr, "Failed to initialize GLAD\n");
+        return false;
+    }
+
+    glfwSwapInterval(0);
 
     glViewport(0, 0, width, height);
     glEnable(GL_DEPTH_TEST);
@@ -46,22 +61,30 @@ bool Application::Init()
 
 void Application::Run()
 {
+    double lastTime = glfwGetTime();
+    int frameCount = 0;
+
     while(!glfwWindowShouldClose(window))
     {
-        std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
+
+        float currentFrame = static_cast<float>(glfwGetTime());
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+
         glfwPollEvents();
-        Keyboard_Events();
+        Input_Events();
 
         glClearColor( 0.1f, 0.1f, 0.1f, 1.0f);
-
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        shader->Use();
 
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        shader->Use();
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         glm::mat4 model = glm::mat4(1.0f);
         glm::mat4 view = scene.camera.GetViewMatrix();
         glm::mat4 projection = scene.camera.GetProjectionMatrix();
+        glm::mat4 viewProjection = projection * view;
 
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "view"), 1, GL_FALSE, glm::value_ptr(view));
@@ -70,43 +93,68 @@ void Application::Run()
         glUniform1i(glGetUniformLocation(shader->ID, "terrainWidth"), scene.terrain.width);
         glUniform1i(glGetUniformLocation(shader->ID, "terrainHeight"), scene.terrain.height);
 
-        scene.Render();
-
-        
-
+        scene.Render(viewProjection, scene.camera.Position);
 
         glfwSwapBuffers(window);
-        std::chrono::time_point<std::chrono::high_resolution_clock> stop = std::chrono::high_resolution_clock::now();
-        std::chrono::microseconds duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        double fps = 1e6 / static_cast<double>(duration.count());
-
-        printf("FPS: %.2f\n", fps);
+        
+        frameCount++;
+        double currentTime = glfwGetTime();
+        if (currentTime - lastTime >= 1.0)
+        {
+            char title[128];
+            snprintf(title, sizeof(title), "OpenGL Terrain | FPS: %d", frameCount);
+            glfwSetWindowTitle(window, title);
+            
+            frameCount = 0;
+            lastTime = currentTime;
+        }
     }
 }
 
-void Application::Keyboard_Events()
+void Application::Input_Events()
 {
-    if(glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-        scene.camera.Rotate(-0.02f, 0.0f);
 
-    if(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-        scene.camera.Rotate(0.02f, 0.0f);
+    double xpos, ypos;
+    glfwGetCursorPos(window, &xpos, &ypos);
 
-    if(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-        scene.camera.Rotate(0.0f, -0.02f);
+    if(firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
 
-    if(glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-        scene.camera.Rotate(0.0f, 0.02f);
+    float xoffset = static_cast<float>(xpos - lastX);
+    float yoffset = static_cast<float>(lastY - ypos);
+
+    lastX = xpos;
+    lastY = ypos;
+
+    float sensitivity = 0.001f; 
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    float speedPerSecond = 250.0f; 
+    float currentVelocity = speedPerSecond * deltaTime;
+
+
+    scene.camera.Rotate(xoffset, yoffset);
 
     if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-    scene.camera.MoveLocal(glm::vec3(0.0f, 3.5f, 0.0f));
+        scene.camera.MoveLocal(glm::vec3(0.0f, currentVelocity, 0.0f));
 
     if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        scene.camera.MoveLocal(glm::vec3(0.0f, -3.5f, 0.0f));
+        scene.camera.MoveLocal(glm::vec3(0.0f, -currentVelocity, 0.0f));
 
     if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        scene.camera.MoveLocal(glm::vec3(-3.5f, 0.0f, 0.0f));
+        scene.camera.MoveLocal(glm::vec3(-currentVelocity, 0.0f, 0.0f));
 
     if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        scene.camera.MoveLocal(glm::vec3(3.5f, 0.0f, 0.0f));
+        scene.camera.MoveLocal(glm::vec3(currentVelocity, 0.0f, 0.0f));
+
+    if(glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+        scene.camera.MoveLocal(glm::vec3(0.0f, 0.0f, -currentVelocity));
+
+    if(glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+        scene.camera.MoveLocal(glm::vec3(0.0f, 0.0f, currentVelocity));
 }

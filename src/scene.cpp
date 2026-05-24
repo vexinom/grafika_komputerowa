@@ -6,7 +6,7 @@ void Scene::Init()
     terrain.Init();
 }
 
-void Scene::Render()
+void Scene::Render(glm::mat4 viewProjection, glm::vec3 cameraPosition)
 {
-    terrain.Draw();
+    terrain.Draw(viewProjection, cameraPosition);
 }
