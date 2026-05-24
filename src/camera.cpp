@@ -8,7 +8,7 @@ Camera::Camera()
     FOV = 45.0f;
     Aspect = 800.0f / 600.0f;
 
-    NearPlane = 0.001f;
+    NearPlane = 0.1f;
     FarPlane = 2000.0f;
 }
 

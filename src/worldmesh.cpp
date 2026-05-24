@@ -46,6 +46,10 @@ void WorldMesh::Init()
             int curr_chunk_width = std::min(CHUNK_SIZE, width - 1 - ch_x);
             int curr_chunk_height = std::min(CHUNK_SIZE, height - 1 - ch_z);
 
+            float minY = std::numeric_limits<float>::max();
+            float maxY = std::numeric_limits<float>::lowest();
+            float skirtDepth = 25.0f;
+
 
             for(int z = 0; z <= curr_chunk_height; z++)
             {
@@ -61,6 +65,9 @@ void WorldMesh::Init()
                     float posY = (float)y * yScale - yShift;
                     float posZ = (float)globalZ;
 
+                    minY = std::min(minY, posY);
+                    maxY = std::max(maxY, posY);
+
                     chunk_vertices.push_back(posX);
                     chunk_vertices.push_back(posY);
                     chunk_vertices.push_back(posZ);
@@ -68,8 +75,50 @@ void WorldMesh::Init()
                 }
             }
 
-            chunk.minBoundBox = glm::vec3(ch_x, -yShift, ch_z);
-            chunk.maxBoundBox = glm::vec3(ch_x + curr_chunk_width, yShift * 4, ch_z + curr_chunk_height);
+            int baseVertexCount = (curr_chunk_width + 1) * (curr_chunk_height + 1);
+            int skirtOffset = baseVertexCount;
+
+            std::function<void(int, int)> pushSkirtVertex = [&](int x, int z) 
+            {
+                int globalX = ch_x + x;
+                int globalZ = ch_z + z;
+                unsigned char y = data[(globalX + width * globalZ) * bytePerPixel];
+                float posX = (float)globalX;
+                float posY = ((float)y * yScale - yShift) - skirtDepth; 
+                float posZ = (float)globalZ;
+                chunk_vertices.push_back(posX); 
+                chunk_vertices.push_back(posY); 
+                chunk_vertices.push_back(posZ);
+            };
+
+            int topSkirtIdx = skirtOffset; skirtOffset += (curr_chunk_width + 1);
+            for(int x = 0; x <= curr_chunk_width; x++) 
+            {   
+                pushSkirtVertex(x, 0);
+            }
+
+            int bottomSkirtIdx = skirtOffset; skirtOffset += (curr_chunk_width + 1);
+            for(int x = 0; x <= curr_chunk_width; x++) 
+            {
+                pushSkirtVertex(x, curr_chunk_height);
+            }
+
+            int leftSkirtIdx = skirtOffset; skirtOffset += (curr_chunk_height + 1);
+            for(int z = 0; z <= curr_chunk_height; z++) 
+            { 
+                pushSkirtVertex(0, z);
+            }
+
+            int rightSkirtIdx = skirtOffset;
+            for(int z = 0; z <= curr_chunk_height; z++) 
+            {
+                pushSkirtVertex(curr_chunk_width, z);
+            }
+
+
+
+            chunk.minBoundBox = glm::vec3(ch_x, minY - skirtDepth, ch_z);
+            chunk.maxBoundBox = glm::vec3(ch_x + curr_chunk_width, maxY, ch_z + curr_chunk_height);
 
             glGenVertexArrays(1, &chunk.VAO);
             glBindVertexArray(chunk.VAO);
@@ -101,6 +150,35 @@ void WorldMesh::Init()
                     }
                     lod_indices.push_back(restartIndex);
                 }
+
+                for(int x = 0; x <= curr_chunk_width; x += stride) 
+                {
+                    lod_indices.push_back(x + vertexWidth * 0); 
+                    lod_indices.push_back(topSkirtIdx + x);     
+                }
+                lod_indices.push_back(restartIndex);
+
+                for(int x = 0; x <= curr_chunk_width; x += stride) 
+                {
+                    lod_indices.push_back(x + vertexWidth * curr_chunk_height); 
+                    lod_indices.push_back(bottomSkirtIdx + x);                
+                }
+                lod_indices.push_back(restartIndex);
+
+                for(int z = 0; z <= curr_chunk_height; z += stride) 
+                {
+                    lod_indices.push_back(0 + vertexWidth * z); 
+                    lod_indices.push_back(leftSkirtIdx + z);  
+                }
+                lod_indices.push_back(restartIndex);
+
+                for(int z = 0; z <= curr_chunk_height; z += stride) 
+                {
+                    lod_indices.push_back(curr_chunk_width + vertexWidth * z); 
+                    lod_indices.push_back(rightSkirtIdx + z);                
+                }
+                lod_indices.push_back(restartIndex);
+                
                 chunk.indexCount[lod] = static_cast<int>(lod_indices.size()); 
 
                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, chunk.EBO[lod]);
