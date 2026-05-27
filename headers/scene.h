@@ -2,6 +2,7 @@
 #include "camera.h"
 #include "worldmesh.h"
 #include "watermesh.h"
+#include "shader.h"
 
 class Scene
 {
@@ -17,6 +18,6 @@ class Scene
 
         void Init();
         void Update();
-        void Render(glm::mat4 viewProjection, glm::vec3 cameraPosition);
-
+        void Render(glm::mat4 viewProjection, glm::vec3 cameraPosition, unsigned int shaderID); 
 };
+

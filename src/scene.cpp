@@ -3,12 +3,10 @@
 void Scene::Init()
 {
     terrain.Init();
-    water.Init(terrain.width, terrain.height, 45.0f);
+    water.Init(terrain.width, terrain.height, 90.0f);
 }
 
-void Scene::Render(glm::mat4 viewProjection, glm::vec3 cameraPosition)
+void Scene::Render(glm::mat4 viewProjection, glm::vec3 cameraPosition, unsigned int shaderID)
 {
-    terrain.Draw(viewProjection, cameraPosition);
-
-    
+    terrain.Draw(viewProjection, cameraPosition, shaderID);
 }

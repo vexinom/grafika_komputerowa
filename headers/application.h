@@ -17,7 +17,7 @@ class Application
         int height;
         int width;
 
-        bool Init();
+        bool Init();                                    // initialization of application
         void Run();
         void Shutdown();
         void Input_Events();
@@ -38,6 +38,6 @@ class Application
         double lastY = 300.0;
         bool firstMouse = true;
 
-        float deltaTime = 0.0f;
+        float deltaTime = 0.0f;                             // things for time
         float lastFrame = 0.0f;
 };

@@ -6,14 +6,17 @@
 class Chunk
 {
     public:
-
-    unsigned VAO, VBO;
-
     int x, z;
 
     glm::vec3 minBoundBox;
     glm::vec3 maxBoundBox;
 
+};
+
+struct LocalVertex
+{
+    float x, z;
+    float isSkirt;
 };
 
 class Plane
@@ -30,22 +33,25 @@ public:
 class WorldMesh
 {
     public: 
-        void Draw(glm::mat4 & viewProjection, glm::vec3 & cameraPosition);
+        void Draw(glm::mat4 & viewProjection, glm::vec3 & cameraPosition, unsigned int shaderID);
         void Init();
 
         ~WorldMesh();
 
         std::vector<Chunk> chunks;
 
+        unsigned int globalVAO;
+        unsigned int globalVBO;
         unsigned int globalEBO[3];
         int globalindexCount[3];
 
-        int width, height;
-        unsigned int NUM_STRIPS;
-        unsigned int NUM_VERTS_PER_STRIP;
+        unsigned int heightmapTexture;
+        unsigned int surfaceTexture;
 
-        std::vector<float> vertices;
-        std::vector<unsigned int> indices;
+        int width, height;
+        float yScale = 146.0f;
+        float yShift = 0.0f;
+        float skirtDepth = 5.0f;
 };
 
 std::vector<Plane> GetFrustumPlanes(const glm::mat4 & viewProj);

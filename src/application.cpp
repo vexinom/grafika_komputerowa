@@ -94,7 +94,7 @@ void Application::Run()
         glUniform1i(glGetUniformLocation(shader->ID, "terrainWidth"), scene.terrain.width);
         glUniform1i(glGetUniformLocation(shader->ID, "terrainHeight"), scene.terrain.height);
 
-        scene.Render(viewProjection, scene.camera.Position);
+        scene.Render(viewProjection, scene.camera.Position, shader->ID);
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

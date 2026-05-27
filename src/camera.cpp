@@ -2,7 +2,7 @@
 
 Camera::Camera()
 {
-    Position = glm::vec3(5.0f, 5.0f, 15.0f);
+    Position = glm::vec3(15.0f, 15.0f, 15.0f);
     Orientation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 
     FOV = 45.0f;
