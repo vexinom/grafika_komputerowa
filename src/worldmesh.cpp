@@ -2,10 +2,10 @@
 #include <cmath>
 #include <glad/glad.h>
 #include <algorithm>
+#include <vector>
+#include <functional>
 
-//must be here for #include "stb_image.h" to work, without it linker throw errors
 #define STB_IMAGE_IMPLEMENTATION 
-
 #include "stb_image.h"
 
 void WorldMesh::Init()
@@ -14,11 +14,50 @@ void WorldMesh::Init()
 
     stbi_set_flip_vertically_on_load(true);
 
-    unsigned char *data = stbi_load("assets/worldmap.png", &width, &height, &nChannels, 0);
+    unsigned short *rawData = stbi_load_16("assets/worldmap.png", &width, &height, &nChannels, 1);
+    int channels = 1;
 
-    if (!data) {
+    if (!rawData) {
         fprintf(stderr, "Failed to load terrain texture heightmap map!\n");
         return;
+    }
+
+    std::vector<float> dataArray(width * height);
+    for (int i = 0; i < width * height; i++) {
+        dataArray[i] = static_cast<float>(rawData[i]) / 65535.0f;
+    }
+    stbi_image_free(rawData);
+
+    float* data = dataArray.data();
+
+    std::vector<float> smoothedData(width * height);
+    int blurRadius = 1;
+
+    for(int z = 0; z < height; z++)
+    {
+        for(int x = 0; x < width; x++)
+        {
+            float sum = 0.0f;
+            int count = 0;
+
+            for(int bz = -blurRadius; bz <= blurRadius; bz ++)
+            {
+                for(int bx = -blurRadius; bx <= blurRadius; bx++)
+                {
+                    int nx = std::max(0, std::min(x + bx, width -1 ));
+                    int nz = std::max(0, std::min(z + bz, height - 1));
+
+                    sum += data[nx + nz * width];
+                    count++;
+                }
+            }
+            smoothedData[x + z * width] = sum / count;
+        }
+    }
+
+    for(int i = 0; i < width * height; i++)
+    {
+        data[i] = smoothedData[i];
     }
 
     NUM_STRIPS = height - 1;
@@ -26,8 +65,81 @@ void WorldMesh::Init()
 
     const int CHUNK_SIZE = 64;
 
-    float yScale = 256.0f / 256.0f, yShift = 16.0f;
-    unsigned bytePerPixel = nChannels;
+    float yScale = 146.0f, yShift = 16.0f;
+
+    glGenBuffers(3, globalEBO);
+    int lodStrides[3] = {1, 2, 4};
+
+    unsigned int restartIndex = 0xFFFFFFFF;
+    int vertexWidth = CHUNK_SIZE + 1;
+    int vertexHeigth = CHUNK_SIZE + 1;
+
+    int baseVertexCount = vertexWidth * vertexHeigth;
+    int skirtOffset = baseVertexCount;
+    int topSkirtIndex = skirtOffset;
+    skirtOffset += vertexWidth;
+
+    int bottomSkirtIndex = skirtOffset;
+    skirtOffset += vertexWidth;
+
+    int leftSkirtIndex = skirtOffset;
+    skirtOffset += vertexHeigth;
+
+    int rightSkirtIndex = skirtOffset;
+
+    for(int lod = 0; lod < 3; lod++)
+    {
+        std::vector<unsigned int> lod_indices;
+        int stride = lodStrides[lod];
+        
+        for(int z = 0; z < CHUNK_SIZE; z += stride)      
+        {
+            for(int x = 0; x <= CHUNK_SIZE; x += stride)      
+            {
+                lod_indices.push_back(x + vertexWidth * z);
+                lod_indices.push_back(x + vertexWidth * std::min(z + stride, CHUNK_SIZE)); 
+            }
+            lod_indices.push_back(restartIndex);
+        }
+
+        for(int x = 0; x <= CHUNK_SIZE; x+= stride)
+        {
+            lod_indices.push_back(x + vertexWidth * 0);
+            lod_indices.push_back(topSkirtIndex + x);
+        }
+        lod_indices.push_back(restartIndex);
+
+        for(int x = 0; x <= CHUNK_SIZE; x+= stride)
+        {
+            lod_indices.push_back(x + vertexWidth * CHUNK_SIZE);
+            lod_indices.push_back(bottomSkirtIndex + x);
+        }
+        lod_indices.push_back(restartIndex);
+
+        for(int z = 0; z <= CHUNK_SIZE; z+= stride)
+        {
+            lod_indices.push_back(0 + vertexWidth * z);
+            lod_indices.push_back(leftSkirtIndex + z);
+        }
+        lod_indices.push_back(restartIndex);
+
+        for(int z = 0; z <= CHUNK_SIZE; z+= stride)
+        {
+            lod_indices.push_back(CHUNK_SIZE + vertexWidth * z);
+            lod_indices.push_back(rightSkirtIndex + z);
+        }
+        lod_indices.push_back(restartIndex);
+
+
+        globalindexCount[lod] = static_cast<int>(lod_indices.size());
+
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, globalEBO[lod]);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, lod_indices.size() * sizeof(unsigned int), lod_indices.data(), GL_STATIC_DRAW);
+
+    }
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     chunks.clear();
 
@@ -35,90 +147,101 @@ void WorldMesh::Init()
     {
         for(int ch_x = 0; ch_x < width - 1; ch_x += CHUNK_SIZE)
         {
-
             Chunk chunk;
             chunk.x = ch_x / CHUNK_SIZE;
-            chunk.z = ch_z / CHUNK_SIZE;
+            chunk.x = ch_z / CHUNK_SIZE;
 
-            std::vector<float> chunk_vertices;
-            std::vector<unsigned int> chunk_indices;
-
-            int curr_chunk_width = std::min(CHUNK_SIZE, width - 1 - ch_x);
-            int curr_chunk_height = std::min(CHUNK_SIZE, height - 1 - ch_z);
+            std::vector <float> chunk_vertices;
 
             float minY = std::numeric_limits<float>::max();
             float maxY = std::numeric_limits<float>::lowest();
+
             float skirtDepth = 25.0f;
 
-
-            for(int z = 0; z <= curr_chunk_height; z++)
+            for(int z = 0; z <= CHUNK_SIZE; z++)
             {
-                for(int x = 0; x <= curr_chunk_width; x++)
+                for(int x = 0; x <= CHUNK_SIZE; x++)
                 {
                     int globalX = ch_x + x;
                     int globalZ = ch_z + z;
 
-                    unsigned char* pixelOffset = data + (globalX + width * globalZ) * bytePerPixel;
-                    unsigned char y = pixelOffset[0];
+                    int clampedX = std::min(globalX, width - 1);
+                    int clampedZ = std::min(globalZ, width - 1);
+
+                    int index = (clampedX + width * clampedZ) * channels;
+                    float y = data[index];
 
                     float posX = (float)globalX;
-                    float posY = (float)y * yScale - yShift;
+                    float posY = (y * yScale - yShift) - skirtDepth;
                     float posZ = (float)globalZ;
 
                     minY = std::min(minY, posY);
                     maxY = std::max(maxY, posY);
 
+                    glm::vec3 normal = GetVertexNormal(clampedX, clampedZ, data, width, height, channels, yScale);
+
                     chunk_vertices.push_back(posX);
                     chunk_vertices.push_back(posY);
                     chunk_vertices.push_back(posZ);
 
+                    chunk_vertices.push_back(normal.x);
+                    chunk_vertices.push_back(normal.y);
+                    chunk_vertices.push_back(normal.z);
+
                 }
             }
 
-            int baseVertexCount = (curr_chunk_width + 1) * (curr_chunk_height + 1);
-            int skirtOffset = baseVertexCount;
-
-            std::function<void(int, int)> pushSkirtVertex = [&](int x, int z) 
+            std::function<void(int, int)> pushSkirtVertex = [&](int x, int z)
             {
                 int globalX = ch_x + x;
                 int globalZ = ch_z + z;
-                unsigned char y = data[(globalX + width * globalZ) * bytePerPixel];
+
+                int clampedX = std::min(globalX, width - 1);
+                int clampedZ = std::min(globalZ, width - 1);
+
+                int index = (clampedX + width * clampedZ) * channels;
+                float y = data[index];
+
                 float posX = (float)globalX;
-                float posY = ((float)y * yScale - yShift) - skirtDepth; 
+                float posY = (y * yScale - yShift) - skirtDepth;
                 float posZ = (float)globalZ;
-                chunk_vertices.push_back(posX); 
-                chunk_vertices.push_back(posY); 
+
+                minY = std::min(minY, posY);
+                maxY = std::max(maxY, posY);
+
+                glm::vec3 normal = GetVertexNormal(clampedX, clampedZ, data, width, height, channels, yScale);
+
+                chunk_vertices.push_back(posX);
+                chunk_vertices.push_back(posY);
                 chunk_vertices.push_back(posZ);
+
+                chunk_vertices.push_back(normal.x);
+                chunk_vertices.push_back(normal.y);
+                chunk_vertices.push_back(normal.z);
             };
 
-            int topSkirtIdx = skirtOffset; skirtOffset += (curr_chunk_width + 1);
-            for(int x = 0; x <= curr_chunk_width; x++) 
-            {   
+            for(int x = 0; x <= CHUNK_SIZE; x++)
+            {
                 pushSkirtVertex(x, 0);
             }
 
-            int bottomSkirtIdx = skirtOffset; skirtOffset += (curr_chunk_width + 1);
-            for(int x = 0; x <= curr_chunk_width; x++) 
+            for(int x = 0; x <= CHUNK_SIZE; x++)
             {
-                pushSkirtVertex(x, curr_chunk_height);
+                pushSkirtVertex(x, CHUNK_SIZE);
             }
 
-            int leftSkirtIdx = skirtOffset; skirtOffset += (curr_chunk_height + 1);
-            for(int z = 0; z <= curr_chunk_height; z++) 
-            { 
-                pushSkirtVertex(0, z);
-            }
-
-            int rightSkirtIdx = skirtOffset;
-            for(int z = 0; z <= curr_chunk_height; z++) 
+            for(int z = 0; z <= CHUNK_SIZE; z++)
             {
-                pushSkirtVertex(curr_chunk_width, z);
+                pushSkirtVertex(z, 0);
             }
 
-
+            for(int z = 0; z <= CHUNK_SIZE; z++)
+            {
+                pushSkirtVertex(z, CHUNK_SIZE);
+            }
 
             chunk.minBoundBox = glm::vec3(ch_x, minY - skirtDepth, ch_z);
-            chunk.maxBoundBox = glm::vec3(ch_x + curr_chunk_width, maxY, ch_z + curr_chunk_height);
+            chunk.maxBoundBox = glm::vec3(ch_x + CHUNK_SIZE, maxY, ch_z + CHUNK_SIZE);
 
             glGenVertexArrays(1, &chunk.VAO);
             glBindVertexArray(chunk.VAO);
@@ -127,78 +250,19 @@ void WorldMesh::Init()
             glBindBuffer(GL_ARRAY_BUFFER, chunk.VBO);
             glBufferData(GL_ARRAY_BUFFER, chunk_vertices.size() * sizeof(float), chunk_vertices.data(), GL_STATIC_DRAW);
 
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
             glEnableVertexAttribArray(0);
 
-            glGenBuffers(3, chunk.EBO);
-
-            int lodStrides[3] = {1, 2, 4};
-            unsigned int restartIndex = 0xFFFFFFFF;
-            int vertexWidth = curr_chunk_width + 1;
-
-            for(int lod = 0; lod < 3; lod++)
-            {
-                std::vector<unsigned int> lod_indices;
-                int stride = lodStrides[lod];
-                
-                for(int z = 0; z < curr_chunk_height; z += stride)       
-                {
-                    for(int x = 0; x <= curr_chunk_width; x += stride)      
-                    {
-                        lod_indices.push_back(x + vertexWidth * z);
-                        lod_indices.push_back(x + vertexWidth * std::min(z + stride, curr_chunk_height)); 
-                    }
-                    lod_indices.push_back(restartIndex);
-                }
-
-                for(int x = 0; x <= curr_chunk_width; x += stride) 
-                {
-                    lod_indices.push_back(x + vertexWidth * 0); 
-                    lod_indices.push_back(topSkirtIdx + x);     
-                }
-                lod_indices.push_back(restartIndex);
-
-                for(int x = 0; x <= curr_chunk_width; x += stride) 
-                {
-                    lod_indices.push_back(x + vertexWidth * curr_chunk_height); 
-                    lod_indices.push_back(bottomSkirtIdx + x);                
-                }
-                lod_indices.push_back(restartIndex);
-
-                for(int z = 0; z <= curr_chunk_height; z += stride) 
-                {
-                    lod_indices.push_back(0 + vertexWidth * z); 
-                    lod_indices.push_back(leftSkirtIdx + z);  
-                }
-                lod_indices.push_back(restartIndex);
-
-                for(int z = 0; z <= curr_chunk_height; z += stride) 
-                {
-                    lod_indices.push_back(curr_chunk_width + vertexWidth * z); 
-                    lod_indices.push_back(rightSkirtIdx + z);                
-                }
-                lod_indices.push_back(restartIndex);
-                
-                chunk.indexCount[lod] = static_cast<int>(lod_indices.size()); 
-
-                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, chunk.EBO[lod]);
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, lod_indices.size() * sizeof(unsigned int), lod_indices.data(), GL_STATIC_DRAW);
-            }
-
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+            glEnableVertexAttribArray(1);
 
             glBindVertexArray(0);
-            glBindBuffer(GL_ARRAY_BUFFER, 0); 
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-            
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+
             chunks.push_back(chunk);
         }
-    }
+    }       
     
-
-
-    stbi_image_free(data);
-
-
 }
 
 void WorldMesh::Draw(glm::mat4 & viewProjection, glm::vec3 & cameraPosition)
@@ -229,10 +293,9 @@ void WorldMesh::Draw(glm::mat4 & viewProjection, glm::vec3 & cameraPosition)
             lod = 1;
         }
 
-
         glBindVertexArray(chunks[i].VAO);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, chunks[i].EBO[lod]);
-        glDrawElements(GL_TRIANGLE_STRIP, chunks[i].indexCount[lod], GL_UNSIGNED_INT, (void*)0 );
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, globalEBO[lod]);
+        glDrawElements(GL_TRIANGLE_STRIP, globalindexCount[lod], GL_UNSIGNED_INT, (void*)0 );
         chunksDrawn++;
     }
 
@@ -240,6 +303,10 @@ void WorldMesh::Draw(glm::mat4 & viewProjection, glm::vec3 & cameraPosition)
     glBindVertexArray(0);
 }
 
+WorldMesh::~WorldMesh()
+{
+    glDeleteBuffers(3, globalEBO);
+}
 
 Plane::Plane()
 {
@@ -314,4 +381,27 @@ bool IsBoxInFrustrum(const glm::vec3 & min, const glm::vec3 max, const std::vect
         }
     }
     return true;
+}
+
+glm::vec3 GetVertexNormal(int globalX, int globalZ, float * data, int width, int height, int channels, float yScale)
+{
+    std::function<float(int, int)> GetHeight = [&](int x, int z) -> float 
+    {
+        int clampedX = std::max(0, std::min(x, width - 1));
+        int clampedZ = std::max(0, std::min(z, height - 1));
+        int index = (clampedX + width * clampedZ) * channels;
+        return data[index] * yScale;
+    };
+
+    float hL = GetHeight(globalX - 1, globalZ);
+    float hR = GetHeight(globalX + 1, globalZ);
+    float hD = GetHeight(globalX, globalZ - 1);
+    float hU = GetHeight(globalX, globalZ + 1);
+
+    float dX = (hL - hR) * 0.5f;
+    float dZ = (hD - hU) * 0.5f;
+
+    glm::vec3 normal = glm::normalize(glm::vec3(dX, 1.0f, dZ));
+
+    return normal;
 }

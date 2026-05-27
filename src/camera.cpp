@@ -9,7 +9,7 @@ Camera::Camera()
     Aspect = 800.0f / 600.0f;
 
     NearPlane = 0.1f;
-    FarPlane = 2000.0f;
+    FarPlane = 1500.0f;
 }
 
 glm::mat4 Camera::GetViewMatrix() const

@@ -13,6 +13,7 @@ class Application
         GLFWwindow* window;
         Scene scene;
         Shader* shader;
+        Shader* waterShader;
         int height;
         int width;
 

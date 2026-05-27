@@ -8,8 +8,6 @@ class Chunk
     public:
 
     unsigned VAO, VBO;
-    unsigned EBO[3]; //for 3 level of details high/medium/low far away chunks are drawn in lower quality
-    int indexCount[3];
 
     int x, z;
 
@@ -35,8 +33,12 @@ class WorldMesh
         void Draw(glm::mat4 & viewProjection, glm::vec3 & cameraPosition);
         void Init();
 
+        ~WorldMesh();
+
         std::vector<Chunk> chunks;
-        int indexCount;
+
+        unsigned int globalEBO[3];
+        int globalindexCount[3];
 
         int width, height;
         unsigned int NUM_STRIPS;
@@ -48,3 +50,4 @@ class WorldMesh
 
 std::vector<Plane> GetFrustumPlanes(const glm::mat4 & viewProj);
 bool IsBoxInFrustrum(const glm::vec3 & min, const glm::vec3 max, const std::vector<Plane> planes);
+glm::vec3 GetVertexNormal(int globalX, int globalZ, float * data, int width, int height, int channels, float yScale);

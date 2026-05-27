@@ -52,6 +52,7 @@ bool Application::Init()
     glViewport(0, 0, width, height);
     glEnable(GL_DEPTH_TEST);
     shader = new Shader("shaders/vertex.glsl", "shaders/fragment.glsl");
+    waterShader = new Shader("shaders/water_vertex.glsl", "shaders/water_fragment.glsl");
 
     glDisable(GL_CULL_FACE);
     scene.Init();
@@ -94,6 +95,20 @@ void Application::Run()
         glUniform1i(glGetUniformLocation(shader->ID, "terrainHeight"), scene.terrain.height);
 
         scene.Render(viewProjection, scene.camera.Position);
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthMask(GL_FALSE);
+
+        waterShader->Use();
+        waterShader->SetMat4("model", glm::mat4(1.0f));
+        waterShader->SetMat4("view", scene.camera.GetViewMatrix());
+        waterShader->SetMat4("projection", scene.camera.GetProjectionMatrix());
+
+        scene.water.Draw(viewProjection);
+
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
 
         glfwSwapBuffers(window);
         
@@ -140,10 +155,10 @@ void Application::Input_Events()
 
     scene.camera.Rotate(xoffset, yoffset);
 
-    if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    if(glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
         scene.camera.MoveLocal(glm::vec3(0.0f, currentVelocity, 0.0f));
 
-    if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    if(glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
         scene.camera.MoveLocal(glm::vec3(0.0f, -currentVelocity, 0.0f));
 
     if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
@@ -152,9 +167,9 @@ void Application::Input_Events()
     if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         scene.camera.MoveLocal(glm::vec3(currentVelocity, 0.0f, 0.0f));
 
-    if(glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+    if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         scene.camera.MoveLocal(glm::vec3(0.0f, 0.0f, -currentVelocity));
 
-    if(glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+    if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
         scene.camera.MoveLocal(glm::vec3(0.0f, 0.0f, currentVelocity));
 }

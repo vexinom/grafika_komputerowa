@@ -1,12 +1,14 @@
 #pragma once
 #include "camera.h"
 #include "worldmesh.h"
+#include "watermesh.h"
 
 class Scene
 {
     public:
         Camera camera;
         WorldMesh terrain;
+        WaterMesh water;
 
         Scene()
         {
