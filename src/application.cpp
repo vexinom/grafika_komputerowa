@@ -105,7 +105,7 @@ void Application::Run()
         waterShader->SetMat4("view", scene.camera.GetViewMatrix());
         waterShader->SetMat4("projection", scene.camera.GetProjectionMatrix());
 
-        scene.water.Draw(viewProjection);
+        scene.water.Draw(viewProjection, scene.camera.Position, waterShader->ID, scene.terrain, currentFrame);
 
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);

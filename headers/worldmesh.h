@@ -47,6 +47,7 @@ class WorldMesh
 
         unsigned int heightmapTexture;
         unsigned int surfaceTexture;
+        unsigned int grassTexture;
 
         int width, height;
         float yScale = 146.0f;

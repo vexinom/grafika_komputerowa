@@ -6,6 +6,7 @@ out float Height;
 out vec3 Position;
 out vec3 Normal;
 out vec2 TexCoord; 
+out vec3 WorldPos;
 
 uniform mat4 model;
 uniform mat4 view;

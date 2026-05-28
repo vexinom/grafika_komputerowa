@@ -10,6 +10,8 @@
 
 void WorldMesh::Init()
 {
+
+    // HEIGHT MAP
     int nChannels;
 
     stbi_set_flip_vertically_on_load(true);
@@ -34,6 +36,9 @@ void WorldMesh::Init()
 
     stbi_image_free(rawData);
 
+
+    // SAND TEXTURE
+
     int sWidth, sHeight, sChannels;
     unsigned char* surfaceData = stbi_load("assets/sand.jpg", &sWidth, &sHeight, &sChannels, 0);
 
@@ -57,6 +62,30 @@ void WorldMesh::Init()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     stbi_image_free(surfaceData);
+
+    //GRASS TEXTURE
+
+    int gWidth, gHeight, gChannels;
+    unsigned char* grassData = stbi_load("assets/grass.png", &gWidth, &gHeight, &gChannels, 0);
+
+    if (!grassData) {
+        fprintf(stderr, "Failed to load grass texture!\n");
+        return;
+    }
+
+    glGenTextures(1, &grassTexture);
+    glBindTexture(GL_TEXTURE_2D, grassTexture);
+
+    GLenum gFormat = (gChannels == 4) ? GL_RGBA : GL_RGB;
+    glTexImage2D(GL_TEXTURE_2D, 0, gFormat, gWidth, gHeight, 0, gFormat, GL_UNSIGNED_BYTE, grassData);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    stbi_image_free(grassData);
 
 
     const int CHUNK_SIZE = 64;
@@ -202,11 +231,19 @@ void WorldMesh::Draw(glm::mat4 & viewProjection, glm::vec3 & cameraPosition, uns
 
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, surfaceTexture);
-    glUniform1i(glGetUniformLocation(shaderID, "surfaceTexture"), 1);
+    glUniform1i(glGetUniformLocation(shaderID, "sandTexture"), 1);
+
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, grassTexture);
+    glUniform1i(glGetUniformLocation(shaderID, "grassTexture"), 2);
+
+
     glUniform1f(glGetUniformLocation(shaderID, "textureTileSize"), 8.0f);
 
     glUniform2f(glGetUniformLocation(shaderID, "textureSize"), (float)width, (float)height);
     glUniform3f(glGetUniformLocation(shaderID, "terrainParams"), yScale, yShift, skirtDepth);
+
+    glUniform3f(glGetUniformLocation(shaderID, "cameraPos"), cameraPosition.x, cameraPosition.y, cameraPosition.z);
 
     for(size_t i = 0; i < chunks.size(); i++)
     {
