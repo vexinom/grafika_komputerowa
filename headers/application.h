@@ -14,6 +14,7 @@ class Application
         Scene scene;
         Shader* shader;
         Shader* waterShader;
+        Shader* skydomeShader;
         int height;
         int width;
 

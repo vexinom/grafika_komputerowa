@@ -2,6 +2,7 @@
 #include "camera.h"
 #include "worldmesh.h"
 #include "watermesh.h"
+#include "skydome.h"
 #include "shader.h"
 
 class Scene
@@ -10,6 +11,7 @@ class Scene
         Camera camera;
         WorldMesh terrain;
         WaterMesh water;
+        Skydome skydome;
 
         Scene()
         {

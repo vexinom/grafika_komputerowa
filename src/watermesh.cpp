@@ -1,73 +1,83 @@
 #include "watermesh.h"
+#include <iostream>
 
-void WaterMesh::Init(int worldWidth, int worldHeight, float waterLevel, float maxWaveHeight)
+void WaterMesh::Init(float waterLevel, float maxWaveHeight)
 {
     this->waterLevel = waterLevel;
     this->maxWaveHeight = maxWaveHeight;
-    waterChunks.clear();
 
-    //Creation of chunks
+    int resolution = 1024;
+    float spacing = 4.0f;
 
-    const int CHUNK_SIZE = 64;
+    std::vector<glm::vec2> vertices;
+    std::vector<unsigned int> indices;
 
-    for(int ch_z = 0; ch_z < worldHeight - 1; ch_z += CHUNK_SIZE)
+    float offset = (resolution * spacing) / 2.0f;
+
+    for (int z = 0; z < resolution; z++)
     {
-        for(int ch_x = 0; ch_x < worldWidth - 1; ch_x += CHUNK_SIZE)
+        for (int x = 0; x < resolution; x++)
         {
-            WaterChunk chunk;
-            chunk.x = ch_x;
-            chunk.z = ch_z;
-
-            chunk.minBoundBox = glm::vec3(ch_x, waterLevel - maxWaveHeight - 2.0f, ch_z);
-            chunk.maxBoundBox = glm::vec3(ch_x + CHUNK_SIZE, waterLevel + maxWaveHeight, ch_z + CHUNK_SIZE);
-
-            waterChunks.push_back(chunk);
+            vertices.push_back(glm::vec2(x * spacing - offset, z * spacing - offset));
         }
     }
-    
+
+    for(int z = 0; z < resolution - 1; z++)
+    {
+        for(int x = 0; x < resolution - 1; x++)
+        {
+            int topLeft = z * resolution + x;
+            int topRight = topLeft + 1;
+            int bottomLeft = (z + 1) * resolution + x;
+            int bottomRight = bottomLeft + 1;
+
+            indices.push_back(topLeft);
+            indices.push_back(bottomLeft);
+            indices.push_back(topRight);
+            
+            indices.push_back(topRight);
+            indices.push_back(bottomLeft);
+            indices.push_back(bottomRight);
+            
+        }
+    }
+
+    indexCount = (int)indices.size();
+
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec2), vertices.data(), GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindVertexArray(0);
 
 }
 
-void WaterMesh::Draw(glm::mat4 &viewProjection, glm::vec3 &cameraPosition, unsigned int waterShaderID, const WorldMesh & worldMesh, float time) 
+void WaterMesh::Draw(glm::mat4 &viewProjection, glm::vec3 &cameraPosition, unsigned int waterShaderID, float time) 
 {
-    std::vector<Plane> frustrumPlanes = GetFrustumPlanes(viewProjection);
+    glBindVertexArray(VAO);
 
-    glEnable(GL_PRIMITIVE_RESTART);
-    glPrimitiveRestartIndex(0xFFFFFFFF);
-
-    glBindVertexArray(worldMesh.globalVAO);
+    float spacing = 4.0f;
+    float snappedX = std::floor(cameraPosition.x / spacing) * spacing;
+    float snappedZ = std::floor(cameraPosition.z / spacing) * spacing;
 
     glUniform1f(glGetUniformLocation(waterShaderID, "waterLevel"), waterLevel);
     glUniform3f(glGetUniformLocation(waterShaderID, "cameraPos"), cameraPosition.x, cameraPosition.y, cameraPosition.z);
-
     glUniform1f(glGetUniformLocation(waterShaderID, "time"), time);
 
-    for(size_t i = 0; i < waterChunks.size(); i++)
-    {
-        if(IsBoxInFrustrum(waterChunks[i].minBoundBox, waterChunks[i].maxBoundBox, frustrumPlanes) == false)
-        {
-            continue;
-        }
+    glUniform2f(glGetUniformLocation(waterShaderID, "chunkOffset"), snappedX, snappedZ);
 
-        glm::vec3 chunkCenter = (waterChunks[i].minBoundBox + waterChunks[i].maxBoundBox) * 0.5f;
-        float distance = glm::distance(cameraPosition, chunkCenter);
+    glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, (void*)0);
 
-        int lod = 0;
-        if(distance > 600.0f)
-        {
-            lod = 2;
-        }
-        else if(distance > 250.0f)
-        {
-            lod = 1;
-        }
-
-        glUniform2f(glGetUniformLocation(waterShaderID, "chunkOffset"), (float)waterChunks[i].x, (float)waterChunks[i].z);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, worldMesh.globalEBO[lod]);
-        glDrawElements(GL_TRIANGLE_STRIP, worldMesh.globalindexCount[lod], GL_UNSIGNED_INT, (void*)0 );
-    }
-
-    glDisable(GL_PRIMITIVE_RESTART);
-    glBindVertexArray(0);    
+    glBindVertexArray(0);
 }

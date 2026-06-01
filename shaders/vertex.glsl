@@ -39,6 +39,7 @@ void main()
 
     Height = worldY;
     vec3 worldPos = vec3(globalXZ.x, worldY, globalXZ.y);
+    WorldPos = worldPos;
 
     vec2 texel = 1.0 / textureSize;
     

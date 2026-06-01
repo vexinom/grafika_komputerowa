@@ -5,24 +5,16 @@
 #include "worldmesh.h"
 
 
-class WaterChunk
-{
-    public:
-    int x, z;
-
-    glm::vec3 minBoundBox;
-    glm::vec3 maxBoundBox;
-
-};
-
 class WaterMesh
 {
     public:
-        void Init(int worldWidth, int worldHeight, float waterLevel, float maxWaveHeight = 5.0f);
-        void Draw(glm::mat4 &viewProjection, glm::vec3 &cameraPosition, unsigned int waterShaderID, const WorldMesh & worldMesh, float time);
+        void Init(float waterLevel, float maxWaveHeight);
+        void Draw(glm::mat4 &viewProjection, glm::vec3 &cameraPosition, unsigned int waterShaderID, float time);
 
     private:
-        std::vector <WaterChunk> waterChunks;
+        unsigned int VAO,VBO, EBO;
+        int indexCount;
+
         float waterLevel;
         float maxWaveHeight;
 

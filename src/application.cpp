@@ -1,4 +1,5 @@
 #include "application.h"
+#include "skydome.h"
 
 #include <iostream>
 #include <glm/gtc/type_ptr.hpp>
@@ -53,6 +54,7 @@ bool Application::Init()
     glEnable(GL_DEPTH_TEST);
     shader = new Shader("shaders/vertex.glsl", "shaders/fragment.glsl");
     waterShader = new Shader("shaders/water_vertex.glsl", "shaders/water_fragment.glsl");
+    skydomeShader = new Shader("shaders/skydome_vertex.glsl", "shaders/skydome_fragment.glsl");
 
     glDisable(GL_CULL_FACE);
     scene.Init();
@@ -105,7 +107,18 @@ void Application::Run()
         waterShader->SetMat4("view", scene.camera.GetViewMatrix());
         waterShader->SetMat4("projection", scene.camera.GetProjectionMatrix());
 
-        scene.water.Draw(viewProjection, scene.camera.Position, waterShader->ID, scene.terrain, currentFrame);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, scene.terrain.heightmapTexture);
+        glUniform1i(glGetUniformLocation(waterShader->ID, "terrainHeightmap"), 3);
+
+        waterShader->SetFloat("terrainYScale", scene.terrain.yScale);
+        waterShader->SetFloat("terrainYShift", scene.terrain.yShift);
+        waterShader->SetFloat("terrainSkirtDepth", scene.terrain.skirtDepth);
+        
+        glUniform2f(glGetUniformLocation(waterShader->ID, "terrainTextureSize"), (float)scene.terrain.width, (float)scene.terrain.height);
+
+        scene.water.Draw(viewProjection, scene.camera.Position, waterShader->ID, currentFrame);
+        scene.skydome.Draw(viewProjection, scene.camera.Position, skydomeShader->ID, currentFrame);
 
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);

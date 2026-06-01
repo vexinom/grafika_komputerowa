@@ -34,39 +34,7 @@ void main()
 
     float waterHeight = 90.0;
 
-    if (Height < waterHeight)
-    {
-        float waterTravelDistance = 0.0;
-
-        if (cameraPos.y < waterHeight)
-        {
-            waterTravelDistance = distance(cameraPos, WorldPos);
-        }
-        else
-        {
-            vec3 viewDir = normalize(WorldPos - cameraPos);
-            if (abs(viewDir.y) > 0.0001)
-            {
-                float t = (waterHeight - cameraPos.y) / viewDir.y;
-                vec3 waterEntryPoint = cameraPos + viewDir * t;
-                
-                waterTravelDistance = distance(waterEntryPoint, WorldPos);
-            }
-        }
-
-        float waterDensity = 0.015; 
-        float fogFactor = 1.0 - exp(-waterTravelDistance * waterDensity);
-        fogFactor = clamp(fogFactor, 0.0, 0.98);
-
-        float verticalDepth = waterHeight - Height;
-        float colorGradient = clamp(verticalDepth * 0.02, 0.0, 1.0);
-        
-        vec4 shallowWaterColor = vec4(0.0, 0.45, 0.55, 0.2);
-        vec4 deepWaterColor    = vec4(0.0, 0.02, 0.12, 1.0);
-        vec4 volumeColor       = mix(shallowWaterColor, deepWaterColor, colorGradient);
-
-        finalColor = mix(finalColor, volumeColor, fogFactor);
-    }
+    
 
     FragColor = finalColor;
 }
