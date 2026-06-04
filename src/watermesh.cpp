@@ -6,29 +6,32 @@ void WaterMesh::Init(float waterLevel, float maxWaveHeight)
     this->waterLevel = waterLevel;
     this->maxWaveHeight = maxWaveHeight;
 
-    int resolution = 1024;
+    int chunkSize = 64; 
+    int vertexCount = chunkSize + 1;
     float spacing = 4.0f;
 
     std::vector<glm::vec2> vertices;
     std::vector<unsigned int> indices;
 
-    float offset = (resolution * spacing) / 2.0f;
+    float chunkWorldSize = chunkSize * spacing; 
+    float offset = chunkWorldSize / 2.0f;
 
-    for (int z = 0; z < resolution; z++)
+
+    for (int z = 0; z < vertexCount; z++)
     {
-        for (int x = 0; x < resolution; x++)
+        for (int x = 0; x < vertexCount; x++)
         {
             vertices.push_back(glm::vec2(x * spacing - offset, z * spacing - offset));
         }
     }
 
-    for(int z = 0; z < resolution - 1; z++)
+    for(int z = 0; z < chunkSize; z++)
     {
-        for(int x = 0; x < resolution - 1; x++)
+        for(int x = 0; x < chunkSize; x++)
         {
-            int topLeft = z * resolution + x;
+            int topLeft = z * vertexCount + x;
             int topRight = topLeft + 1;
-            int bottomLeft = (z + 1) * resolution + x;
+            int bottomLeft = (z + 1) * vertexCount + x;
             int bottomRight = bottomLeft + 1;
 
             indices.push_back(topLeft);
@@ -67,17 +70,28 @@ void WaterMesh::Draw(glm::mat4 &viewProjection, glm::vec3 &cameraPosition, unsig
 {
     glBindVertexArray(VAO);
 
+    int chunkSize = 64;
     float spacing = 4.0f;
-    float snappedX = std::floor(cameraPosition.x / spacing) * spacing;
-    float snappedZ = std::floor(cameraPosition.z / spacing) * spacing;
+    float chunkWorldSize = chunkSize * spacing;
 
-    glUniform1f(glGetUniformLocation(waterShaderID, "waterLevel"), waterLevel);
-    glUniform3f(glGetUniformLocation(waterShaderID, "cameraPos"), cameraPosition.x, cameraPosition.y, cameraPosition.z);
+    int cameraChunkX = (int)std::floor(cameraPosition.x / chunkWorldSize);
+    int cameraChunkZ = (int)std::floor(cameraPosition.z / chunkWorldSize);
+
+    int viewDistance = 6;
+
     glUniform1f(glGetUniformLocation(waterShaderID, "time"), time);
 
-    glUniform2f(glGetUniformLocation(waterShaderID, "chunkOffset"), snappedX, snappedZ);
+    for (int z = -viewDistance; z <= viewDistance; z++)
+    {
+        for (int x = -viewDistance; x <= viewDistance; x++)
+        {
+            float currentChunkOffsetX = (cameraChunkX + x) * chunkWorldSize;
+            float currentChunkOffsetZ = (cameraChunkZ + z) * chunkWorldSize;
 
-    glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, (void*)0);
+            glUniform2f(glGetUniformLocation(waterShaderID, "chunkOffset"), currentChunkOffsetX, currentChunkOffsetZ);
 
+            glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, (void*)0);
+        }
+    }
     glBindVertexArray(0);
 }

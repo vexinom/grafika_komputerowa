@@ -80,9 +80,12 @@ void Application::Run()
 
         glClearColor( 0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
         shader->Use();
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
+        
 
         glm::mat4 model = glm::mat4(1.0f);
         glm::mat4 view = scene.camera.GetViewMatrix();
@@ -92,11 +95,15 @@ void Application::Run()
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "view"), 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(glGetUniformLocation(shader->ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-
         glUniform1i(glGetUniformLocation(shader->ID, "terrainWidth"), scene.terrain.width);
         glUniform1i(glGetUniformLocation(shader->ID, "terrainHeight"), scene.terrain.height);
 
         scene.Render(viewProjection, scene.camera.Position, shader->ID);
+
+        skydomeShader->Use();
+        glDepthMask(GL_FALSE); 
+        scene.skydome.Draw(viewProjection, scene.camera.Position, skydomeShader->ID, currentFrame);
+        glDepthMask(GL_TRUE);
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -109,16 +116,8 @@ void Application::Run()
 
         glActiveTexture(GL_TEXTURE3);
         glBindTexture(GL_TEXTURE_2D, scene.terrain.heightmapTexture);
-        glUniform1i(glGetUniformLocation(waterShader->ID, "terrainHeightmap"), 3);
-
-        waterShader->SetFloat("terrainYScale", scene.terrain.yScale);
-        waterShader->SetFloat("terrainYShift", scene.terrain.yShift);
-        waterShader->SetFloat("terrainSkirtDepth", scene.terrain.skirtDepth);
-        
-        glUniform2f(glGetUniformLocation(waterShader->ID, "terrainTextureSize"), (float)scene.terrain.width, (float)scene.terrain.height);
 
         scene.water.Draw(viewProjection, scene.camera.Position, waterShader->ID, currentFrame);
-        scene.skydome.Draw(viewProjection, scene.camera.Position, skydomeShader->ID, currentFrame);
 
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);

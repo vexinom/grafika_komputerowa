@@ -1,76 +1,77 @@
 #version 330 core
-layout (location = 0) in vec2 inLocalPos; 
+
+layout (location = 0) in vec2 aPos;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-
 uniform vec2 chunkOffset;
-uniform float waterLevel;
 uniform float time;
-uniform vec2 terrainTextureSize;
 
-out vec3 FramePosition;
-out vec3 FrameNormal;
-out vec3 WorldPos;
-out vec2 TerrainTexCoord; 
+out vec4 v_color;
+out vec3 FragPos;
+out vec3 Normal;
 
-struct GerstnerWave
+const float MSCALE = 0.05; 
+const float TSCALE = 0.02;  
+const float SCALE  = 5.0;  
+float water_level = 80.0;
+
+const mat2 mr = mat2(0.54030, 0.84147, -0.84147, 0.54030);
+
+float hash( in float n ) { return fract(sin(n)*43758.5453); }
+
+float noise(in vec2 x)
 {
-    vec2 direction; 
-    float amplitude;
-    float steepness;
-    float waveLength;
-    float speed;
-}; 
+    vec2 p = floor(x);
+    vec2 f = fract(x);
+        
+    f = f*f*(3.0-2.0*f);    
+    float n = p.x + p.y*57.0;
+    
+    float res = mix(mix( hash(n+  0.0), hash(n+  1.0),f.x),
+                    mix( hash(n+ 57.0), hash(n+ 58.0),f.x),f.y);
+    return res;
+}
 
-vec3 GetGerstnerWave(GerstnerWave wave, vec2 pos, float t, inout vec3 tangent, inout vec3 binormal) {
-    vec2 d = normalize(wave.direction);
-    float k = 2.0 * 3.14159265 / wave.waveLength;
-    float c = wave.speed;
-    float f = k * (dot(d, pos) - c * t);
-    float a = wave.amplitude;
-    float q = wave.steepness;
+float fbm( in vec2 p )
+{
+    float f;
+    f  =      0.5000*noise( p ); p = mr*p*2.02;
+    f +=      0.2500*noise( p ); p = mr*p*2.33;
+    f +=      0.1250*noise( p ); p = mr*p*2.01;
+    f +=      0.0625*noise( p ); p = mr*p*5.21;
+    return f / 0.9375; 
+}
 
-    tangent += vec3(
-        -d.x * d.x * q * sin(f),
-        d.x * q * cos(f),
-        -d.x * d.y * q * sin(f)
-    );
-    binormal += vec3(
-        -d.x * d.y * q * sin(f),
-        d.y * q * cos(f),
-        -d.y * d.y * q * sin(f)
-    );
-
-    return vec3(
-        d.x * (a * cos(f)),
-        a * sin(f),
-        d.y * (a * cos(f))
-    );
+float getWaterHeight(vec2 worldXZ) 
+{
+    vec2 trans1 = vec2(time * 16.0, time * 23.0) * MSCALE;
+    vec2 trans2 = vec2(time * -10.0, time * 14.0) * MSCALE;
+    float h1 = fbm(worldXZ * TSCALE + trans1);
+    float h2 = fbm(worldXZ * TSCALE * 1.5 + trans2);
+    return ((h1 + h2) * 0.5) * SCALE;
 }
 
 void main()
 {
-    vec2 globalXZ = chunkOffset + inLocalPos;
+    vec2 worldXZ = chunkOffset + aPos;
+
+    float height = getWaterHeight(worldXZ);
+
+    float d = 0.1; 
+    float hL = getWaterHeight(worldXZ - vec2(d, 0.0));
+    float hR = getWaterHeight(worldXZ + vec2(d, 0.0));
+    float hD = getWaterHeight(worldXZ - vec2(0.0, d));
+    float hU = getWaterHeight(worldXZ + vec2(0.0, d));
     
-    TerrainTexCoord = globalXZ / terrainTextureSize;
+    Normal = normalize(vec3(hL - hR, 2.0 * d, hD - hU));
 
-    GerstnerWave wave1 = GerstnerWave(vec2(1.0, 0.0), 1.0, 0.2, 40.0, 1.5);
-    GerstnerWave wave2 = GerstnerWave(vec2(0.6, 0.8), 0.5, 0.1, 20.0, 2.5);
-
-    vec3 tangent = vec3(1.0, 0.0, 0.0);
-    vec3 binormal = vec3(0.0, 0.0, 1.0);
+    vec4 worldPos = vec4(worldXZ.x, height + water_level, worldXZ.y, 1.0);
+    FragPos = vec3(worldPos); 
     
-    vec3 displacement = vec3(0.0);
-    displacement += GetGerstnerWave(wave1, globalXZ, time, tangent, binormal);
-    displacement += GetGerstnerWave(wave2, globalXZ, time, tangent, binormal);
-
-    vec3 worldPos = vec3(globalXZ.x, waterLevel, globalXZ.y) + displacement;
+    gl_Position = projection * view * model * worldPos;
     
-    WorldPos = worldPos;
-    FramePosition = worldPos; 
-    FrameNormal = normalize(cross(binormal, tangent));
-
-    gl_Position = projection * view * model * vec4(worldPos, 1.0);
+    float colorIntensity = max(0.2, 1.0 - (height / SCALE) * 0.8);
+    v_color = vec4(colorIntensity, colorIntensity, colorIntensity + 0.2, 1.0); 
 }
