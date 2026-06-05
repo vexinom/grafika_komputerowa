@@ -64,34 +64,55 @@ void WaterMesh::Init(float waterLevel, float maxWaveHeight)
 
     glBindVertexArray(0);
 
+    chunks.clear();
+
+    int worldRadius = 4;
+
+    for (int z = -worldRadius; z <= worldRadius; z++)
+    {
+        for (int x = -worldRadius; x <= worldRadius; x++)
+        {
+            WaterChunk chunk;
+            chunk.offsetX = x * chunkWorldSize;
+            chunk.offsetZ = z * chunkWorldSize;
+
+            chunk.minBoundBox = glm::vec3(
+                chunk.offsetX - offset, 
+                waterLevel - maxWaveHeight, 
+                chunk.offsetZ - offset
+            );
+            
+            chunk.maxBoundBox = glm::vec3(
+                chunk.offsetX + offset, 
+                waterLevel + maxWaveHeight, 
+                chunk.offsetZ + offset
+            );
+
+            chunks.push_back(chunk);
+        }
+    }
+
+
 }
 
 void WaterMesh::Draw(glm::mat4 &viewProjection, glm::vec3 &cameraPosition, unsigned int waterShaderID, float time) 
 {
+    std::vector<Plane> frustrumPlanes = GetFrustumPlanes(viewProjection);
+
     glBindVertexArray(VAO);
-
-    int chunkSize = 64;
-    float spacing = 4.0f;
-    float chunkWorldSize = chunkSize * spacing;
-
-    int cameraChunkX = (int)std::floor(cameraPosition.x / chunkWorldSize);
-    int cameraChunkZ = (int)std::floor(cameraPosition.z / chunkWorldSize);
-
-    int viewDistance = 6;
 
     glUniform1f(glGetUniformLocation(waterShaderID, "time"), time);
 
-    for (int z = -viewDistance; z <= viewDistance; z++)
+    for (size_t i = 0; i < chunks.size(); i++)
     {
-        for (int x = -viewDistance; x <= viewDistance; x++)
+        if (IsBoxInFrustrum(chunks[i].minBoundBox, chunks[i].maxBoundBox, frustrumPlanes) == false)
         {
-            float currentChunkOffsetX = (cameraChunkX + x) * chunkWorldSize;
-            float currentChunkOffsetZ = (cameraChunkZ + z) * chunkWorldSize;
-
-            glUniform2f(glGetUniformLocation(waterShaderID, "chunkOffset"), currentChunkOffsetX, currentChunkOffsetZ);
-
-            glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, (void*)0);
+            continue; 
         }
+
+        glUniform2f(glGetUniformLocation(waterShaderID, "chunkOffset"), chunks[i].offsetX, chunks[i].offsetZ);
+
+        glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, (void*)0);
     }
     glBindVertexArray(0);
 }
