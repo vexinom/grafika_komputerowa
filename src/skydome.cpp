@@ -96,14 +96,22 @@ void Skydome::Draw(glm::mat4 &viewProjection, glm::vec3 &cameraPosition, unsigne
 
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, cameraPosition);
-
     model = glm::scale(model, glm::vec3(100.0f));
+
+    float timeSpeed = time * 0.02f;
+    sun.direction.x = cos(timeSpeed);
+    sun.direction.y = sin(timeSpeed);
+    sun.direction.z = -0.5f;
+    sun.direction = glm::normalize(sun.direction);
 
     unsigned int vpLoc = glGetUniformLocation(skydomeShaderID, "viewProjection");
     glUniformMatrix4fv(vpLoc, 1, GL_FALSE, &viewProjection[0][0]);
 
     unsigned int modelLoc = glGetUniformLocation(skydomeShaderID, "model");
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
+
+    unsigned int sunDirLoc = glGetUniformLocation(skydomeShaderID, "sunDirection");
+    glUniform3fv(sunDirLoc, 1, &sun.direction[0]);
 
     glBindVertexArray(VAO);
 
