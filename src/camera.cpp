@@ -25,12 +25,19 @@ glm::mat4 Camera::GetProjectionMatrix() const
     return glm::perspective(glm::radians(FOV), Aspect, NearPlane, FarPlane);
 }
 
-void Camera::Rotate(float vertical, float horizontal)
+void Camera::Rotate(float yawOffset, float pitchOffset)
 {
-    glm::quat Qvertical = glm::angleAxis(vertical, glm::vec3(0, 1, 0));
-    glm::quat Qhorizontal = glm::angleAxis(horizontal, glm::vec3(1, 0, 0));
+    Yaw -= yawOffset; 
+    Pitch -= pitchOffset;
 
-    Orientation = glm::normalize(Qvertical * Qhorizontal * Orientation);
+    float pitchLimit = glm::radians(89.0f);
+    if (Pitch > pitchLimit) Pitch = pitchLimit;
+    if (Pitch < -pitchLimit) Pitch = -pitchLimit;
+
+    glm::quat qYaw = glm::angleAxis(Yaw, glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::quat qPitch = glm::angleAxis(Pitch, glm::vec3(1.0f, 0.0f, 0.0f));
+
+    Orientation = glm::normalize(qYaw * qPitch);
 }
 
 void Camera::MoveLocal(const glm::vec3 & dir)

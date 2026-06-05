@@ -161,11 +161,11 @@ void Application::Input_Events()
     xoffset *= sensitivity;
     yoffset *= sensitivity;
 
+    scene.camera.Rotate(xoffset, yoffset);
+
     float speedPerSecond = 250.0f; 
     float currentVelocity = speedPerSecond * deltaTime;
 
-
-    scene.camera.Rotate(xoffset, yoffset);
 
     if(glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
         scene.camera.MoveLocal(glm::vec3(0.0f, currentVelocity, 0.0f));

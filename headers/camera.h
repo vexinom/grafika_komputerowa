@@ -15,13 +15,16 @@ class Camera
         float NearPlane;
         float FarPlane;
 
+        float Yaw = 0.0f;
+        float Pitch = 0.0f;
+
         // default constructor
         Camera();
 
         glm::mat4 GetViewMatrix() const;
         glm::mat4 GetProjectionMatrix() const;
 
-        void Rotate(float vertical, float horizontal);
+        void Rotate(float yawOffset, float pitchOffset);
         void MoveLocal(const glm::vec3 & dir);
 
 };
