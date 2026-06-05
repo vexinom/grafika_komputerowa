@@ -100,19 +100,45 @@ void WaterMesh::Draw(glm::mat4 &viewProjection, glm::vec3 &cameraPosition, unsig
     std::vector<Plane> frustrumPlanes = GetFrustumPlanes(viewProjection);
 
     glBindVertexArray(VAO);
-
     glUniform1f(glGetUniformLocation(waterShaderID, "time"), time);
 
-    for (size_t i = 0; i < chunks.size(); i++)
+    int chunkSize = 64;
+    float spacing = 4.0f;
+    float chunkWorldSize = chunkSize * spacing;
+    float offset = chunkWorldSize / 2.0f;
+
+    int cameraChunkX = (int)std::floor(cameraPosition.x / chunkWorldSize);
+    int cameraChunkZ = (int)std::floor(cameraPosition.z / chunkWorldSize);
+
+    int viewDistance = 7;
+
+    for (int z = -viewDistance; z <= viewDistance; z++)
     {
-        if (IsBoxInFrustrum(chunks[i].minBoundBox, chunks[i].maxBoundBox, frustrumPlanes) == false)
+        for (int x = -viewDistance; x <= viewDistance; x++)
         {
-            continue; 
+            float currentChunkOffsetX = (cameraChunkX + x) * chunkWorldSize;
+            float currentChunkOffsetZ = (cameraChunkZ + z) * chunkWorldSize;
+
+            glm::vec3 minBoundBox = glm::vec3(
+                currentChunkOffsetX - offset, 
+                this->waterLevel - this->maxWaveHeight, 
+                currentChunkOffsetZ - offset
+            );
+            
+            glm::vec3 maxBoundBox = glm::vec3(
+                currentChunkOffsetX + offset, 
+                this->waterLevel + this->maxWaveHeight, 
+                currentChunkOffsetZ + offset
+            );
+
+            if (IsBoxInFrustrum(minBoundBox, maxBoundBox, frustrumPlanes) == false)
+            {
+                continue; 
+            }
+
+            glUniform2f(glGetUniformLocation(waterShaderID, "chunkOffset"), currentChunkOffsetX, currentChunkOffsetZ);
+            glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, (void*)0);
         }
-
-        glUniform2f(glGetUniformLocation(waterShaderID, "chunkOffset"), chunks[i].offsetX, chunks[i].offsetZ);
-
-        glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, (void*)0);
     }
     glBindVertexArray(0);
 }
