@@ -4,6 +4,9 @@
 #include <scene.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <map>
+#include <string>
+
 
 #include "shader.h"
 
@@ -12,9 +15,7 @@ class Application
     public:
         GLFWwindow* window;
         Scene scene;
-        Shader* shader;
-        Shader* waterShader;
-        Shader* skydomeShader;
+        std::map<std::string, Shader*> shaders;
         int height;
         int width;
 
@@ -27,12 +28,12 @@ class Application
         {
             height = _height;
             width = _width;
-            shader = nullptr;
 
             lastX = _width / 2.0;
             lastY = _height / 2.0;
 
         }
+        
 
     private:
         double lastX = 400.0;  

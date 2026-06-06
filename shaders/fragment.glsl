@@ -4,13 +4,15 @@ out vec4 FragColor;
 
 in float Height;
 in vec3 Position;
-in vec3 Normal;
+in vec3 WorldNormal;
 in vec2 TexCoord;
 in vec3 WorldPos; 
 
 uniform sampler2D sandTexture;
 uniform sampler2D grassTexture;
 uniform vec3 cameraPos;
+
+uniform vec3 sunDirection;
 
 void main()
 {
@@ -20,21 +22,23 @@ void main()
     float blendFactor = smoothstep(100.0, 110.0, Height);
     vec3 mixedTerrainColor = mix(sandColor.rgb, grassColor.rgb, blendFactor);
 
-    vec3 lightDirection = normalize(vec3(0.5, 1.0, 0.3));
-    vec3 norm = normalize(Normal);
+    vec3 norm = normalize(WorldNormal);
+    vec3 sunDir = normalize(sunDirection);
+
     norm = normalize(mix(norm, vec3(0.0, 1.0, 0.0), 0.5));
 
-    float dotNL = dot(norm, lightDirection);
-    float diffuseIntensity = pow(dotNL * 0.5 + 0.5, 2.0);
-    float ambientIntensity = 0.1;
+    float dotNL = max(dot(norm, sunDir), 0.0);
 
-    vec3 finalLight = mixedTerrainColor * (diffuseIntensity + ambientIntensity);
-
-    vec4 finalColor = vec4(finalLight, 1.0);
-
-    float waterHeight = 90.0;
+    float sunIntensity = smoothstep(-0.1, 0.1, sunDir.y);
+    float diffuseIntensity = dotNL * sunIntensity;
 
     
+    vec3 ambientDay = vec3(0.3, 0.3, 0.3);
+    vec3 ambientNight = vec3(0.05, 0.1, 0.25);
 
-    FragColor = finalColor;
+    vec3 ambientColor = mix(ambientNight, ambientDay, sunIntensity);
+
+    vec3 finalLight = mixedTerrainColor * (vec3(1.0) * diffuseIntensity + ambientColor);
+    
+    FragColor = vec4(finalLight, 1.0);
 }

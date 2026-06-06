@@ -52,9 +52,12 @@ bool Application::Init()
 
     glViewport(0, 0, width, height);
     glEnable(GL_DEPTH_TEST);
-    shader = new Shader("shaders/vertex.glsl", "shaders/fragment.glsl");
-    waterShader = new Shader("shaders/water_vertex.glsl", "shaders/water_fragment.glsl");
-    skydomeShader = new Shader("shaders/skydome_vertex.glsl", "shaders/skydome_fragment.glsl");
+
+    //Initialization of shaders
+
+    shaders["terrain"] = new Shader("shaders/vertex.glsl", "shaders/fragment.glsl");
+    shaders["water"] = new Shader("shaders/water_vertex.glsl", "shaders/water_fragment.glsl");
+    shaders["skydome"] = new Shader("shaders/skydome_vertex.glsl", "shaders/skydome_fragment.glsl");
 
     glDisable(GL_CULL_FACE);
     scene.Init();
@@ -78,11 +81,15 @@ void Application::Run()
         glfwPollEvents();
         Input_Events();
 
+        scene.DailyCycle(currentFrame);
+
         glClearColor( 0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-        shader->Use();
+        //Height map shader uniforms
+
+        shaders["terrain"]->Use();
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);
         
@@ -92,32 +99,51 @@ void Application::Run()
         glm::mat4 projection = scene.camera.GetProjectionMatrix();
         glm::mat4 viewProjection = projection * view;
 
-        glUniformMatrix4fv(glGetUniformLocation(shader->ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
-        glUniformMatrix4fv(glGetUniformLocation(shader->ID, "view"), 1, GL_FALSE, glm::value_ptr(view));
-        glUniformMatrix4fv(glGetUniformLocation(shader->ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-        glUniform1i(glGetUniformLocation(shader->ID, "terrainWidth"), scene.terrain.width);
-        glUniform1i(glGetUniformLocation(shader->ID, "terrainHeight"), scene.terrain.height);
+        glUniformMatrix4fv(glGetUniformLocation(shaders["terrain"]->ID, "model"), 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix4fv(glGetUniformLocation(shaders["terrain"]->ID, "view"), 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(glGetUniformLocation(shaders["terrain"]->ID, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+        glUniform1i(glGetUniformLocation(shaders["terrain"]->ID, "terrainWidth"), scene.terrain.width);
+        glUniform1i(glGetUniformLocation(shaders["terrain"]->ID, "terrainHeight"), scene.terrain.height);
 
-        scene.Render(viewProjection, scene.camera.Position, shader->ID);
+        unsigned int terrainSunLoc = glGetUniformLocation(shaders["terrain"]->ID, "sunDirection"); 
+        glUniform3fv(terrainSunLoc, 1, &scene.sun.direction[0]);
 
-        skydomeShader->Use();
+        scene.terrain.Draw(viewProjection, scene.camera.Position, shaders["terrain"]->ID);
+
+        //Skydome shader uniforms, must be rendered BEFORE water
+
+        shaders["skydome"]->Use();
         glDepthMask(GL_FALSE); 
-        scene.skydome.Draw(viewProjection, scene.camera.Position, skydomeShader->ID, currentFrame);
+
+        unsigned int sunDirLoc = glGetUniformLocation(shaders["skydome"]->ID, "sunDirection");
+        glUniform3fv(sunDirLoc, 1, &scene.sun.direction[0]);
+
+        scene.skydome.Draw(viewProjection, scene.camera.Position, shaders["skydome"]->ID, currentFrame);
         glDepthMask(GL_TRUE);
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDepthMask(GL_FALSE);
 
-        waterShader->Use();
-        waterShader->SetMat4("model", glm::mat4(1.0f));
-        waterShader->SetMat4("view", scene.camera.GetViewMatrix());
-        waterShader->SetMat4("projection", scene.camera.GetProjectionMatrix());
+        //Water shaders
+
+        shaders["water"]->Use();
+        shaders["water"]->SetMat4("model", glm::mat4(1.0f));
+        shaders["water"]->SetMat4("view", scene.camera.GetViewMatrix());
+        shaders["water"]->SetMat4("projection", scene.camera.GetProjectionMatrix());
+
+        unsigned int waterSunLoc = glGetUniformLocation(shaders["water"]->ID, "sunDirection");
+        glUniform3fv(waterSunLoc, 1, &scene.sun.direction[0]);
+
+        unsigned int waterViewLoc = glGetUniformLocation(shaders["water"]->ID, "viewPos");
+        glUniform3fv(waterViewLoc, 1, &scene.camera.Position[0]);
 
         glActiveTexture(GL_TEXTURE3);
         glBindTexture(GL_TEXTURE_2D, scene.terrain.heightmapTexture);
 
-        scene.water.Draw(viewProjection, scene.camera.Position, waterShader->ID, currentFrame);
+        scene.water.Draw(viewProjection, scene.camera.Position, shaders["water"]->ID, currentFrame);
+
+        //Other thingies
 
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);

@@ -4,7 +4,7 @@ layout (location = 1) in float aIsSkirt;
 
 out float Height;
 out vec3 Position;
-out vec3 Normal;
+out vec3 WorldNormal;
 out vec2 TexCoord; 
 out vec3 WorldPos;
 
@@ -55,8 +55,8 @@ void main()
     vec4 viewSpacePos = view * model * vec4(worldPos, 1.0);
     Position = viewSpacePos.xyz;
     
-    mat3 normalMatrix = mat3(transpose(inverse(view * model)));
-    Normal = normalize(normalMatrix * calculatedNormal);
+    mat3 normalMatrix = mat3(transpose(inverse(model)));
+    WorldNormal = normalize(normalMatrix * calculatedNormal);
     
     gl_Position = projection * viewSpacePos;
 }

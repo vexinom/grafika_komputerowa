@@ -9,7 +9,16 @@ void Scene::Init()
     skydome.Init();
 }
 
-void Scene::Render(glm::mat4 viewProjection, glm::vec3 cameraPosition, unsigned int shaderID)
+
+void Scene::DailyCycle(float time)
 {
-    terrain.Draw(viewProjection, cameraPosition, shaderID);
+
+    float timeSpeed = time * 0.02f;
+    sun.direction.x = cos(timeSpeed);
+    sun.direction.y = sin(timeSpeed);
+    sun.direction.z = -0.5f;
+    sun.direction = glm::normalize(sun.direction);
+
+    //unsigned int sunDirLoc = glGetUniformLocation(skydomeShaderID, "sunDirection");
+    //glUniform3fv(sunDirLoc, 1, &sun.direction[0]);
 }
