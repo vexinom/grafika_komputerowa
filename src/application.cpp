@@ -108,6 +108,8 @@ void Application::Run()
         unsigned int terrainSunLoc = glGetUniformLocation(shaders["terrain"]->ID, "sunDirection"); 
         glUniform3fv(terrainSunLoc, 1, &scene.sun.direction[0]);
 
+        shaders["terrain"]->SetFloat("waterLevel", 80.0f);
+
         scene.terrain.Draw(viewProjection, scene.camera.Position, shaders["terrain"]->ID);
 
         //Skydome shader uniforms, must be rendered BEFORE water

@@ -13,6 +13,7 @@ uniform sampler2D grassTexture;
 uniform vec3 cameraPos;
 
 uniform vec3 sunDirection;
+uniform float waterLevel;
 
 void main()
 {
@@ -39,6 +40,15 @@ void main()
     vec3 ambientColor = mix(ambientNight, ambientDay, sunIntensity);
 
     vec3 finalLight = mixedTerrainColor * (vec3(1.0) * diffuseIntensity + ambientColor);
+
+    if (Height < waterLevel) 
+    {
+        float depth = waterLevel - Height;
+        
+        float visibility = exp(-depth * 0.015); 
+        vec3 waterSubsurfaceColor = vec3(0.02, 0.08, 0.25); 
+        finalLight = mix(waterSubsurfaceColor, finalLight, visibility);
+    }
     
     FragColor = vec4(finalLight, 1.0);
 }

@@ -20,7 +20,10 @@ void main()
     vec3 currentZenith = mix(zenithNight, zenithDay, dayFactor);
     vec3 currentHorizon = mix(horizonSunset, horizonDay, clamp(sunY + 0.2, 0.0, 1.0));
 
-    if(sunY < 0.0) currentHorizon = mix(horizonNight, horizonSunset, clamp(sunY + 1.0, 0.0, 1.0));
+    if(sunY < 0.0) 
+    {
+        currentHorizon = mix(horizonNight, horizonSunset, clamp(sunY + 1.0, 0.0, 1.0));
+    }
 
 
     float gradientFactor = clamp(LocalPos.y, 0.0, 1.0);

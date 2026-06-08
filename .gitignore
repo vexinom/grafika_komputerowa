@@ -8,3 +8,7 @@ CMakeLists.txt
 /build
 #executables
 *.exe
+/assets/worldmap2.png
+/assets/worldmap3.png
+/assets/worldmapx.png
+/assets/worldmapy.png
