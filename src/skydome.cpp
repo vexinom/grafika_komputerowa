@@ -88,23 +88,20 @@ void Skydome::Init()
     glBindVertexArray(0);
 }
 
-void Skydome::Draw(glm::mat4 &viewProjection, glm::vec3 &cameraPosition, unsigned int skydomeShaderID, float time)
+void Skydome::Draw(Shader& shader, const glm::mat4& viewProjection, const glm::vec3& cameraPosition, const glm::vec3& sunDirection, float time)
 {
+    shader.Use();
     glDepthFunc(GL_LEQUAL);
     glDepthMask(GL_FALSE);
-    glUseProgram(skydomeShaderID);
 
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, cameraPosition);
     model = glm::scale(model, glm::vec3(100.0f));
 
 
-    unsigned int vpLoc = glGetUniformLocation(skydomeShaderID, "viewProjection");
-    glUniformMatrix4fv(vpLoc, 1, GL_FALSE, &viewProjection[0][0]);
-
-    unsigned int modelLoc = glGetUniformLocation(skydomeShaderID, "model");
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
-
+    shader.SetMat4("viewProjection", viewProjection);
+    shader.SetMat4("model", model);
+    shader.SetVec3("sunDirection", sunDirection);
 
 
     glBindVertexArray(VAO);

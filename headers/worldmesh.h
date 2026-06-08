@@ -2,6 +2,7 @@
 
 #include <vector> 
 #include <glm/glm.hpp>
+#include "shader.h"
 
 class Chunk
 {
@@ -33,7 +34,7 @@ public:
 class WorldMesh
 {
     public: 
-        void Draw(glm::mat4 & viewProjection, glm::vec3 & cameraPosition, unsigned int shaderID);
+        void Draw(Shader& shader, const glm::mat4 & view, glm::mat4 & projection, const glm::vec3& cameraPosition, const glm::vec3& sunDirection);
         void Init();
 
         ~WorldMesh();

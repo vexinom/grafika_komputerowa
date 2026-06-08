@@ -17,8 +17,8 @@ class Scene
 {
     public:
         Camera camera;
-        WorldMesh terrain;
-        WaterMesh water;
+        WorldMesh worldmesh;
+        WaterMesh watermesh;
         Skydome skydome;
         Sun sun;
 

@@ -95,12 +95,25 @@ void WaterMesh::Init(float waterLevel, float maxWaveHeight)
 
 }
 
-void WaterMesh::Draw(glm::mat4 &viewProjection, glm::vec3 &cameraPosition, unsigned int waterShaderID, float time) 
+void WaterMesh::Draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection, const glm::vec3& cameraPosition, 
+                    const glm::vec3& sunDirection, unsigned int heightmapTexture, float time) 
 {
+    shader.Use();
+    glm::mat4 viewProjection = projection * view;
     std::vector<Plane> frustrumPlanes = GetFrustumPlanes(viewProjection);
 
+    shader.SetMat4("model", glm::mat4(1.0f));
+    shader.SetMat4("view", view);
+    shader.SetMat4("projection", projection);
+    shader.SetVec3("sunDirection", sunDirection);
+    shader.SetVec3("viewPos", cameraPosition);
+    shader.SetFloat("time", time);
+
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, heightmapTexture);
+    shader.SetInt("heightmap", 3);
+
     glBindVertexArray(VAO);
-    glUniform1f(glGetUniformLocation(waterShaderID, "time"), time);
 
     int chunkSize = 64;
     float spacing = 4.0f;
@@ -136,7 +149,7 @@ void WaterMesh::Draw(glm::mat4 &viewProjection, glm::vec3 &cameraPosition, unsig
                 continue; 
             }
 
-            glUniform2f(glGetUniformLocation(waterShaderID, "chunkOffset"), currentChunkOffsetX, currentChunkOffsetZ);
+            shader.SetVec2("chunkOffset", glm::vec2(currentChunkOffsetX, currentChunkOffsetZ));
             glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, (void*)0);
         }
     }

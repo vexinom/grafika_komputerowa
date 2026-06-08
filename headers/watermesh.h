@@ -23,7 +23,9 @@ class WaterMesh
         std::vector<WaterChunk> chunks;
 
         void Init(float waterLevel, float maxWaveHeight);
-        void Draw(glm::mat4 &viewProjection, glm::vec3 &cameraPosition, unsigned int waterShaderID, float time);
+        void Draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection, const glm::vec3& cameraPosition, 
+                    const glm::vec3& sunDirection, unsigned int heightmapTexture, float time);
+
 
     private:
         unsigned int VAO,VBO, EBO;

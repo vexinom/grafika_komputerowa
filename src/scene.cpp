@@ -4,8 +4,8 @@
 
 void Scene::Init()
 {
-    terrain.Init();
-    water.Init(90.0f, 50.0f);
+    worldmesh.Init();
+    watermesh.Init(90.0f, 50.0f);
     skydome.Init();
 }
 

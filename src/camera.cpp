@@ -31,8 +31,15 @@ void Camera::Rotate(float yawOffset, float pitchOffset)
     Pitch -= pitchOffset;
 
     float pitchLimit = glm::radians(89.0f);
-    if (Pitch > pitchLimit) Pitch = pitchLimit;
-    if (Pitch < -pitchLimit) Pitch = -pitchLimit;
+    if (Pitch > pitchLimit) 
+    {
+        Pitch = pitchLimit;
+    }
+    
+    if (Pitch < -pitchLimit) 
+    {
+        Pitch = -pitchLimit;
+    }
 
     glm::quat qYaw = glm::angleAxis(Yaw, glm::vec3(0.0f, 1.0f, 0.0f));
     glm::quat qPitch = glm::angleAxis(Pitch, glm::vec3(1.0f, 0.0f, 0.0f));

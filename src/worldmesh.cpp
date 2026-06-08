@@ -215,9 +215,12 @@ WorldMesh::~WorldMesh() {
     glDeleteTextures(1, &surfaceTexture);
 }
 
-void WorldMesh::Draw(glm::mat4 & viewProjection, glm::vec3 & cameraPosition, unsigned int shaderID)
+void WorldMesh::Draw(Shader& shader, const glm::mat4 & view, glm::mat4 & projection, const glm::vec3& cameraPosition, const glm::vec3& sunDirection)
 {
+    
+    glm::mat4 viewProjection = projection * view;
     std::vector<Plane> frustrumPlanes = GetFrustumPlanes(viewProjection);
+
     int chunksDrawn = 0;
 
     glEnable(GL_PRIMITIVE_RESTART);
@@ -225,25 +228,32 @@ void WorldMesh::Draw(glm::mat4 & viewProjection, glm::vec3 & cameraPosition, uns
 
     glBindVertexArray(globalVAO);
 
+    glm::mat4 model = glm::mat4(1.0f);
+    shader.SetMat4("model", model);
+    shader.SetMat4("view", view);
+    shader.SetMat4("projection", projection);
+    shader.SetInt("terrainWidth", width);
+    shader.SetInt("terrainHeight", height);
+    shader.SetVec3("sunDirection", sunDirection);
+    shader.SetFloat("waterLevel", 80.0f);
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, heightmapTexture);
-    glUniform1i(glGetUniformLocation(shaderID, "heightmap"), 0);
+    shader.SetInt("heightmap", 0);
 
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, surfaceTexture);
-    glUniform1i(glGetUniformLocation(shaderID, "sandTexture"), 1);
+    shader.SetInt("sandTexture", 1);
 
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, grassTexture);
-    glUniform1i(glGetUniformLocation(shaderID, "grassTexture"), 2);
+    shader.SetInt("grassTexture", 2);
 
+    shader.SetFloat("textureTileSize", 8.0f);
+    shader.SetVec2("textureSize", glm::vec2((float)width, (float)height));
+    shader.SetVec3("terrainParams", glm::vec3(yScale, yShift, skirtDepth));
+    shader.SetVec3("cameraPos", cameraPosition);
 
-    glUniform1f(glGetUniformLocation(shaderID, "textureTileSize"), 8.0f);
-
-    glUniform2f(glGetUniformLocation(shaderID, "textureSize"), (float)width, (float)height);
-    glUniform3f(glGetUniformLocation(shaderID, "terrainParams"), yScale, yShift, skirtDepth);
-
-    glUniform3f(glGetUniformLocation(shaderID, "cameraPos"), cameraPosition.x, cameraPosition.y, cameraPosition.z);
 
     for(size_t i = 0; i < chunks.size(); i++)
     {
@@ -265,7 +275,7 @@ void WorldMesh::Draw(glm::mat4 & viewProjection, glm::vec3 & cameraPosition, uns
             lod = 1;
         }
 
-        glUniform2f(glGetUniformLocation(shaderID, "chunkOffset"), (float)chunks[i].x, (float)chunks[i].z);
+        shader.SetVec2("chunkOffset", glm::vec2((float)chunks[i].x, (float)chunks[i].z));
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, globalEBO[lod]);
         glDrawElements(GL_TRIANGLE_STRIP, globalindexCount[lod], GL_UNSIGNED_INT, (void*)0 );
