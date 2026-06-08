@@ -55,8 +55,8 @@ bool Application::Init()
 
     //Initialization of shaders
 
-    shaders["worldmesh"] = new Shader("shaders/vertex.glsl", "shaders/fragment.glsl");
-    shaders["watermesh"] = new Shader("shaders/water_vertex.glsl", "shaders/water_fragment.glsl");
+    shaders["worldmesh"] = new Shader("shaders/worldmesh_vertex.glsl", "shaders/worldmesh_fragment.glsl");
+    shaders["watermesh"] = new Shader("shaders/watermesh_vertex.glsl", "shaders/watermesh_fragment.glsl");
     shaders["skydome"] = new Shader("shaders/skydome_vertex.glsl", "shaders/skydome_fragment.glsl");
 
     glDisable(GL_CULL_FACE);
