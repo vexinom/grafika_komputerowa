@@ -112,6 +112,8 @@ void WaterMesh::Draw(Shader& shader, const glm::mat4& view, const glm::mat4& pro
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, heightmapTexture);
     shader.SetInt("heightmap", 3);
+    shader.SetVec2("textureSize", glm::vec2(2048.0f, 2048.0f));
+    shader.SetVec3("terrainParams", glm::vec3(146.0f, 0.0f, 5.0f));
 
     glBindVertexArray(VAO);
 
