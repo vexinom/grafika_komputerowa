@@ -18,7 +18,7 @@ Small OpenGL project set on archipelago terrain.
 
     2. Compilator
         - [**MSVS**](https://visualstudio.microsoft.com/pl/vs/community/)
-        After downloading choose **"Programowanie aplikacji klasycznych w języku C++"** and install
+        After downloading choose **Desktop development with C++** and install
 
     3. Run CMake from project directory
     ```
