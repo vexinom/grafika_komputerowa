@@ -35,7 +35,7 @@ void main()
 
     
     vec3 ambientDay = vec3(0.3, 0.3, 0.3);
-    vec3 ambientNight = vec3(0.05, 0.1, 0.25);
+    vec3 ambientNight = vec3(0.15, 0.15, 0.25);
 
     vec3 ambientColor = mix(ambientNight, ambientDay, sunIntensity);
 
