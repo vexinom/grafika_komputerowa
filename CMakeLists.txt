@@ -37,6 +37,7 @@ add_executable(computer_graphics
     src/worldmesh.cpp
     src/watermesh.cpp
     src/skydome.cpp
+    src/waterFrameBuffers.cpp
 )
 
 target_include_directories(computer_graphics PRIVATE

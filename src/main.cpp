@@ -4,6 +4,7 @@
 #include <windows.h>
 
 #include "application.h"
+#include "config.h"
 
 
 //for windows to force the use of stronger grahpic card
@@ -14,7 +15,7 @@ extern "C" {
 
 int main()
 {
-    Application app(1280, 720);  // initialization of the entire app
+    Application app(config::WINDOW_WIDTH, config::WINDOW_HEIGHT);  // initialization of the entire app
     if (!app.Init())
     {
         glfwTerminate();
