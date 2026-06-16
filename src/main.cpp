@@ -6,7 +6,6 @@
 #include "application.h"
 
 
-//for windows to force the use of stronger grahpic card
 extern "C" {
     __declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 }
@@ -14,7 +13,7 @@ extern "C" {
 
 int main()
 {
-    Application app(1280, 720);  // initialization of the entire app
+    Application app(1280, 720);
     if (!app.Init())
     {
         glfwTerminate();

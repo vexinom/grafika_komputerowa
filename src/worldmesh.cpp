@@ -5,7 +5,6 @@
 #include <vector>
 #include <functional>
 
-<<<<<<< HEAD
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -35,11 +34,6 @@ static unsigned int LoadTexture(const char* path)
     return texture;
 }
 
-=======
-#define STB_IMAGE_IMPLEMENTATION 
-#include "stb_image.h"
-
->>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
 void WorldMesh::Init()
 {
 
@@ -119,12 +113,9 @@ void WorldMesh::Init()
 
     stbi_image_free(grassData);
 
-<<<<<<< HEAD
     surfaceNormalTexture = LoadTexture("assets/sand_normal.png");
     grassNormalTexture = LoadTexture("assets/grass_normal.png");
 
-=======
->>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
 
     const int CHUNK_SIZE = 64;
     int vertexWidth = CHUNK_SIZE + 1;
@@ -251,7 +242,6 @@ WorldMesh::~WorldMesh() {
     glDeleteVertexArrays(1, &globalVAO);
     glDeleteTextures(1, &heightmapTexture);
     glDeleteTextures(1, &surfaceTexture);
-<<<<<<< HEAD
     glDeleteTextures(1, &grassTexture);
     glDeleteTextures(1, &surfaceNormalTexture);
     glDeleteTextures(1, &grassNormalTexture);
@@ -263,18 +253,6 @@ void WorldMesh::Draw(Shader& shader, const glm::mat4 & view, glm::mat4 & project
     glm::mat4 viewProjection = projection * view;
     std::vector<Plane> frustrumPlanes = GetFrustumPlanes(viewProjection);
 
-=======
-}
-
-void WorldMesh::Draw(Shader& shader, const glm::mat4 & view, glm::mat4 & projection, const glm::vec3& cameraPosition, const glm::vec3& sunDirection)
-{
-    
-    glm::mat4 viewProjection = projection * view;
-    std::vector<Plane> frustrumPlanes = GetFrustumPlanes(viewProjection);
-
-    int chunksDrawn = 0;
-
->>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
     glEnable(GL_PRIMITIVE_RESTART);
     glPrimitiveRestartIndex(0xFFFFFFFF);
 
@@ -284,15 +262,8 @@ void WorldMesh::Draw(Shader& shader, const glm::mat4 & view, glm::mat4 & project
     shader.SetMat4("model", model);
     shader.SetMat4("view", view);
     shader.SetMat4("projection", projection);
-<<<<<<< HEAD
     shader.SetMat4("lightSpaceMatrix", lightSpaceMatrix);
     shader.SetVec3("sunDirection", sunDirection);
-=======
-    shader.SetInt("terrainWidth", width);
-    shader.SetInt("terrainHeight", height);
-    shader.SetVec3("sunDirection", sunDirection);
-    shader.SetFloat("waterLevel", 80.0f);
->>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, heightmapTexture);
@@ -306,7 +277,6 @@ void WorldMesh::Draw(Shader& shader, const glm::mat4 & view, glm::mat4 & project
     glBindTexture(GL_TEXTURE_2D, grassTexture);
     shader.SetInt("grassTexture", 2);
 
-<<<<<<< HEAD
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, surfaceNormalTexture);
     shader.SetInt("sandNormal", 3);
@@ -319,20 +289,15 @@ void WorldMesh::Draw(Shader& shader, const glm::mat4 & view, glm::mat4 & project
     glBindTexture(GL_TEXTURE_2D, shadowMap);
     shader.SetInt("shadowMap", 5);
 
-=======
->>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
     shader.SetFloat("textureTileSize", 8.0f);
     shader.SetVec2("textureSize", glm::vec2((float)width, (float)height));
     shader.SetVec3("terrainParams", glm::vec3(yScale, yShift, skirtDepth));
     shader.SetVec3("cameraPos", cameraPosition);
-<<<<<<< HEAD
     shader.SetVec3("sunColor", glm::vec3(1.0f, 0.97f, 0.9f));
     shader.SetFloat("metallic", metallic);
     shader.SetFloat("roughness", roughness);
     shader.SetVec3("headlightPos", headlightPos);
     shader.SetVec3("headlightColor", headlightColor);
-=======
->>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
 
 
     for(size_t i = 0; i < chunks.size(); i++)
@@ -365,7 +330,6 @@ void WorldMesh::Draw(Shader& shader, const glm::mat4 & view, glm::mat4 & project
     glBindVertexArray(0);
 }
 
-<<<<<<< HEAD
 void WorldMesh::DrawDepth(Shader& shader, const glm::mat4& lightSpaceMatrix)
 {
     std::vector<Plane> lightPlanes = GetFrustumPlanes(lightSpaceMatrix);
@@ -399,8 +363,6 @@ void WorldMesh::DrawDepth(Shader& shader, const glm::mat4& lightSpaceMatrix)
     glBindVertexArray(0);
 }
 
-=======
->>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
 Plane::Plane()
 {
     normal = glm::vec3(0.0f);

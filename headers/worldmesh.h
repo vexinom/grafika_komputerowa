@@ -33,14 +33,9 @@ public:
 
 class WorldMesh
 {
-<<<<<<< HEAD
     public:
         void Draw(Shader& shader, const glm::mat4 & view, glm::mat4 & projection, const glm::vec3& cameraPosition, const glm::vec3& sunDirection, const glm::mat4& lightSpaceMatrix, unsigned int shadowMap);
         void DrawDepth(Shader& shader, const glm::mat4& lightSpaceMatrix);
-=======
-    public: 
-        void Draw(Shader& shader, const glm::mat4 & view, glm::mat4 & projection, const glm::vec3& cameraPosition, const glm::vec3& sunDirection);
->>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
         void Init();
 
         ~WorldMesh();
@@ -55,25 +50,19 @@ class WorldMesh
         unsigned int heightmapTexture;
         unsigned int surfaceTexture;
         unsigned int grassTexture;
-<<<<<<< HEAD
         unsigned int surfaceNormalTexture;
         unsigned int grassNormalTexture;
-=======
->>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
 
         int width, height;
         float yScale = 146.0f;
         float yShift = 0.0f;
         float skirtDepth = 5.0f;
-<<<<<<< HEAD
 
         float metallic = 0.0f;
         float roughness = 0.6f;
 
         glm::vec3 headlightPos = glm::vec3(0.0f);
         glm::vec3 headlightColor = glm::vec3(0.0f);
-=======
->>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
 };
 
 std::vector<Plane> GetFrustumPlanes(const glm::mat4 & viewProj);

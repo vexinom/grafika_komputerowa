@@ -3,13 +3,10 @@
 #include "worldmesh.h"
 #include "watermesh.h"
 #include "skydome.h"
-<<<<<<< HEAD
 #include "cubemap.h"
 #include "tube.h"
 #include "monument.h"
 #include "axolotl.h"
-=======
->>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
 #include "shader.h"
 
 class Sun
@@ -27,13 +24,10 @@ class Scene
         WorldMesh worldmesh;
         WaterMesh watermesh;
         Skydome skydome;
-<<<<<<< HEAD
         Cubemap cubemap;
         Tube tube;
         Monument monument;
         Axolotl axolotl;
-=======
->>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
         Sun sun;
 
 
