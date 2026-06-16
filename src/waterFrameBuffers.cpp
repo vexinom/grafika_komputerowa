@@ -1,10 +1,11 @@
 #include "waterFrameBuffers.h"
 #include "config.h"
 
-WaterFrameBuffers::WaterFrameBuffers()
+void WaterFrameBuffers::init()
 {
     initialiseReflectionFrameBuffer();
 	initialiseRefractionFrameBuffer();
+    initialiseOceandepthFrameBuffer();
 }
 
 GLuint WaterFrameBuffers::createFrameBuffer()
@@ -32,6 +33,7 @@ GLuint WaterFrameBuffers::createDepthTextureAttachment( int width, int height)
 {   
     GLuint texture;
     glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -52,7 +54,7 @@ GLuint WaterFrameBuffers::createDepthBufferAttachment(int width, int height)
 
 void WaterFrameBuffers::unbindCurrentFrameBuffer()
 {
-    glBindBuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, config::WINDOW_WIDTH, config::WINDOW_HEIGHT);
 
 }
@@ -71,6 +73,39 @@ void WaterFrameBuffers::initialiseRefractionFrameBuffer()
     refractionTexture = createTextureAttachment(REFLECTION_WIDTH, REFLECTION_HEIGHT);
     refractionDepthTexture = createDepthTextureAttachment(REFLECTION_WIDTH, REFLECTION_HEIGHT);
     unbindCurrentFrameBuffer();
+}
+
+void WaterFrameBuffers::initialiseOceandepthFrameBuffer()
+{
+    oceandepthFrameBuffer = createFrameBuffer();
+    oceandepthColorBuffer = createTextureAttachment(OCEANDEPTH_WIDTH, OCEANDEPTH_HEIGHT);
+    oceandepthDepthTexture = createDepthTextureAttachment(OCEANDEPTH_WIDTH, OCEANDEPTH_HEIGHT);
+    unbindCurrentFrameBuffer();
+    initialiseQuad();
+}
+
+void WaterFrameBuffers::initialiseQuad()
+{
+    float quadVertices[] = {
+        -1.0f,  1.0f,  0.0f, 1.0f,
+        -1.0f, -1.0f,  0.0f, 0.0f,
+        1.0f, -1.0f,  1.0f, 0.0f,
+
+        -1.0f,  1.0f,  0.0f, 1.0f,
+        1.0f, -1.0f,  1.0f, 0.0f,
+        1.0f,  1.0f,  1.0f, 1.0f
+    };
+
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
 }
 
 GLuint WaterFrameBuffers::getReflectionTexture()
@@ -96,6 +131,11 @@ void WaterFrameBuffers::bindReflectionFrameBuffer()
 void WaterFrameBuffers::bindRefractionFrameBuffer()
 {
     bindFrameBuffer(refractionFrameBuffer,REFRACTION_WIDTH,REFRACTION_HEIGHT);
+}
+
+void WaterFrameBuffers::bindOceandepthFrameBuffer()
+{
+    bindFrameBuffer(oceandepthFrameBuffer, OCEANDEPTH_WIDTH, OCEANDEPTH_HEIGHT);
 }
 
  void WaterFrameBuffers::bindFrameBuffer(GLuint frameBuffer, int width, int height)
