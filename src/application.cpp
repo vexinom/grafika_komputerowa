@@ -209,6 +209,10 @@ void Application::Input_Events()
         scene.camera.MoveLocal(glm::vec3(0.0f, 0.0f, currentVelocity));
 }
 
+void Application::cleanUp()
+{
+    //waterFrameBuffer.cleanUp()
+}
 
 void Application::openGLConfiguration()
 {

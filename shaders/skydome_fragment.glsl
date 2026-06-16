@@ -3,7 +3,10 @@
 out vec4 FragColor;
 
 in vec3 LocalPos;
+in vec2 TexCoords;
+
 uniform vec3 sunDirection;
+uniform sampler2D nightSkyTexture;
 
 void main()
 {
@@ -31,7 +34,6 @@ void main()
         currentHorizon = mix(horizonNight, horizonSunset, blendNight);
     }
 
-
     float gradientFactor = clamp(LocalPos.y, 0.0, 1.0);
     vec3 finalColor = mix(currentHorizon, currentZenith, gradientFactor);
 
@@ -45,6 +47,11 @@ void main()
     float sunGlow = pow(sunAngle, 64.0) * 0.4 * sunVisibility;
 
     finalColor += sunColor * (sunDisc + sunGlow);
+
+    vec3 nightTextureColor = texture(nightSkyTexture, TexCoords).rgb;
+    float nightFade = smoothstep(0.1, -0.2, sunY);
+    
+    finalColor = mix(finalColor, nightTextureColor, nightFade);
 
     FragColor = vec4(finalColor, 1.0);
 }

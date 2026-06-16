@@ -27,6 +27,7 @@ class Application
         void Input_Events();
         void drawFBO(float time);
         void cleanUp();
+        void drawReflectionPreview();
 
         void openGLConfiguration();
         void openGLDisableMouse();

@@ -4,6 +4,7 @@ layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec2 aTexCoords;
 
 out vec3 LocalPos;
+out vec2 TexCoords;
 
 uniform mat4 model;
 uniform mat4 viewProjection;
@@ -11,6 +12,7 @@ uniform mat4 viewProjection;
 void main()
 {
     LocalPos = aPos;
+    TexCoords = aTexCoords;
 
     vec4 pos = viewProjection * model * vec4(aPos, 1.0);
     
