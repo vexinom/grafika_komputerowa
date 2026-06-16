@@ -1,0 +1,13 @@
+#libs
+
+/include
+/lib
+glfw3.dll
+/.vscode
+/build
+#executables
+*.exe
+/assets/worldmap2.png
+/assets/worldmap3.png
+/assets/worldmapx.png
+/assets/worldmapy.png
