@@ -21,12 +21,10 @@ class Application
 
         bool Init();                                    // initialization of application
         bool Init_FBO();
-        bool Init_Shadow();
         void Run();
         void Shutdown();
         void Input_Events();
         void UseFBO(float time);
-        void ShadowPass();
 
         Application(int _width, int _height)
         {
@@ -51,12 +49,4 @@ class Application
         unsigned int colorBuffer;
         unsigned int depthBuffer;
         unsigned int quadVAO, quadVBO;
-
-        unsigned int shadowFBO;
-        unsigned int shadowMap;
-        glm::mat4 lightSpaceMatrix;
-        static const unsigned int SHADOW_RESOLUTION = 4096;
-
-        bool useCubemap = true;
-        bool cubemapKeyDown = false;
 };

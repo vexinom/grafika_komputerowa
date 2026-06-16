@@ -3,7 +3,10 @@
 
 #include <iostream>
 #include <glm/gtc/type_ptr.hpp>
+<<<<<<< HEAD
 #include <glm/gtc/matrix_transform.hpp>
+=======
+>>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
 #include <chrono>
 
 bool Application::Init()
@@ -54,16 +57,24 @@ bool Application::Init()
     glViewport(0, 0, width, height);
     glEnable(GL_DEPTH_TEST);
 
+<<<<<<< HEAD
+=======
+    //Initialization of shaders
+
+>>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
     shaders["worldmesh"] = new Shader("shaders/worldmesh_vertex.glsl", "shaders/worldmesh_fragment.glsl");
     shaders["watermesh"] = new Shader("shaders/watermesh_vertex.glsl", "shaders/watermesh_fragment.glsl");
     shaders["skydome"] = new Shader("shaders/skydome_vertex.glsl", "shaders/skydome_fragment.glsl");
     shaders["postprocess"] = new Shader("shaders/postprocess_vertex.glsl", "shaders/postprocess_fragment.glsl");
+<<<<<<< HEAD
     shaders["depth"] = new Shader("shaders/depth_vertex.glsl", "shaders/depth_fragment.glsl");
     shaders["cubemap"] = new Shader("shaders/cubemap_vertex.glsl", "shaders/cubemap_fragment.glsl");
     shaders["tube"] = new Shader("shaders/tube_vertex.glsl", "shaders/tube_fragment.glsl");
     shaders["object"] = new Shader("shaders/object_vertex.glsl", "shaders/object_fragment.glsl");
     shaders["depthobject"] = new Shader("shaders/depth_object_vertex.glsl", "shaders/depth_fragment.glsl");
     shaders["axolotl"] = new Shader("shaders/axolotl_vertex.glsl", "shaders/axolotl_fragment.glsl");
+=======
+>>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
 
     glDisable(GL_CULL_FACE);
 
@@ -71,15 +82,19 @@ bool Application::Init()
     {
         return false;
     }
+<<<<<<< HEAD
     if(Init_Shadow() == false)
     {
         return false;
     }
+=======
+>>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
     scene.Init();
 
     return true;
 }
 
+<<<<<<< HEAD
 bool Application::Init_Shadow()
 {
     glGenFramebuffers(1, &shadowFBO);
@@ -135,6 +150,8 @@ void Application::ShadowPass()
     glViewport(0, 0, width, height);
 }
 
+=======
+>>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
 bool Application::Init_FBO()
 {
     glGenFramebuffers(1, &postProcessFBO);
@@ -226,6 +243,7 @@ void Application::Run()
 
         scene.DailyCycle(currentFrame);
 
+<<<<<<< HEAD
         scene.axolotl.Update(deltaTime);
         scene.worldmesh.headlightPos = scene.axolotl.HeadlightPosition();
         scene.worldmesh.headlightColor = glm::vec3(1.6f, 1.5f, 1.2f);
@@ -234,20 +252,35 @@ void Application::Run()
 
         glBindFramebuffer(GL_FRAMEBUFFER, postProcessFBO);
         glClearColor( 0.1f, 0.1f, 0.1f, 1.0f);
+=======
+        glBindFramebuffer(GL_FRAMEBUFFER, postProcessFBO);
+        glClearColor( 0.1f, 0.1f, 0.1f, 1.0f);                      //base background color
+>>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
 
+<<<<<<< HEAD
         glm::mat4 view = scene.camera.GetViewMatrix();
         glm::mat4 projection = scene.camera.GetProjectionMatrix();
         glm::mat4 viewProjection = projection * view;
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+=======
+        glm::mat4 view = scene.camera.GetViewMatrix();              //view thingies
+        glm::mat4 projection = scene.camera.GetProjectionMatrix();
+        glm::mat4 viewProjection = projection * view;
+
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);                  //mode of drawing poligons
+
+        //Height map
+>>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
 
         shaders["worldmesh"]->Use();
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);
 
+<<<<<<< HEAD
         scene.worldmesh.Draw(*shaders["worldmesh"], view, projection, scene.camera.Position, scene.sun.direction, lightSpaceMatrix, shadowMap);
 
         scene.tube.Draw(*shaders["tube"], view, projection, scene.sun.direction, scene.camera.Position);
@@ -260,6 +293,13 @@ void Application::Run()
             scene.cubemap.Draw(*shaders["cubemap"], view, projection);
         else
             scene.skydome.Draw(*shaders["skydome"], viewProjection, scene.camera.Position, scene.sun.direction, currentFrame);
+=======
+        scene.worldmesh.Draw(*shaders["worldmesh"], view, projection, scene.camera.Position, scene.sun.direction);
+
+        //Skydome shader uniforms, must be rendered BEFORE water
+
+        scene.skydome.Draw(*shaders["skydome"], viewProjection, scene.camera.Position, scene.sun.direction, currentFrame);
+>>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
         
         
         glDepthMask(GL_TRUE);
@@ -267,8 +307,17 @@ void Application::Run()
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDepthMask(GL_FALSE);
 
+<<<<<<< HEAD
         scene.watermesh.Draw(*shaders["watermesh"], view, projection, scene.camera.Position, scene.sun.direction, scene.worldmesh.heightmapTexture, currentFrame);
 
+=======
+        //Water shaders
+
+        scene.watermesh.Draw(*shaders["watermesh"], view, projection, scene.camera.Position, scene.sun.direction, scene.worldmesh.heightmapTexture, currentFrame);
+
+        //Other thingies
+
+>>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);
 
@@ -337,6 +386,7 @@ void Application::Input_Events()
 
     if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
         scene.camera.MoveLocal(glm::vec3(0.0f, 0.0f, currentVelocity));
+<<<<<<< HEAD
 
     if(glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS)
     {
@@ -368,4 +418,6 @@ void Application::Input_Events()
         glm::vec3 target = scene.axolotl.NearestTo(scene.camera.Position);
         scene.camera.LookAt(target + glm::vec3(24.0f, 28.0f, 24.0f), target);
     }
+=======
+>>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
 }

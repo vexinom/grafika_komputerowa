@@ -1,5 +1,8 @@
 # include "camera.h"
+<<<<<<< HEAD
 #include <cmath>
+=======
+>>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
 
 Camera::Camera()
 {
@@ -51,6 +54,7 @@ void Camera::Rotate(float yawOffset, float pitchOffset)
 void Camera::MoveLocal(const glm::vec3 & dir)
 {
     Position += Orientation * dir;
+<<<<<<< HEAD
 }
 
 void Camera::SetView(const glm::vec3& position, float yaw, float pitch)
@@ -67,4 +71,6 @@ void Camera::LookAt(const glm::vec3& eye, const glm::vec3& target)
     float pitch = asin(glm::clamp(forward.y, -1.0f, 1.0f));
     float yaw = atan2(-forward.x, -forward.z);
     SetView(eye, yaw, pitch);
+=======
+>>>>>>> c03a168ac1ee55ce4304085a785f225cd8fd36c5
 }
