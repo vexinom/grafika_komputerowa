@@ -20,10 +20,25 @@ class WaterFrameBuffers
     GLuint refractionTexture;
     GLuint refractionDepthTexture;
 
+    WaterFrameBuffers();
+
     GLuint createFrameBuffer();
     GLuint createTextureAttachment( int width, int height);
     GLuint createDepthTextureAttachment( int width, int height);
+    GLuint createDepthBufferAttachment(int width, int height);
+
+    GLuint getReflectionTexture();
+    GLuint getRefractionTexture();
+    GLuint getRefractionDepthTexture();
+
+    void bindReflectionFrameBuffer();
+    void bindRefractionFrameBuffer();
+    void bindFrameBuffer(GLuint frameBuffer, int width, int height);
+
     void unbindCurrentFrameBuffer();
+
     void initialiseReflectionFrameBuffer();
     void initialiseRefractionFrameBuffer();
+
+    void cleanUp();
 };

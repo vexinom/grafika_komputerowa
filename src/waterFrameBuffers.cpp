@@ -1,6 +1,11 @@
 #include "waterFrameBuffers.h"
 #include "config.h"
 
+WaterFrameBuffers::WaterFrameBuffers()
+{
+    initialiseReflectionFrameBuffer();
+	initialiseRefractionFrameBuffer();
+}
 
 GLuint WaterFrameBuffers::createFrameBuffer()
 {
@@ -34,6 +39,17 @@ GLuint WaterFrameBuffers::createDepthTextureAttachment( int width, int height)
     return texture;
 
 }
+
+GLuint WaterFrameBuffers::createDepthBufferAttachment(int width, int height)
+{
+    GLuint depthBuffer;
+    glGenRenderbuffers(1, &depthBuffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, depthBuffer);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+
+    return depthBuffer;
+}
+
 void WaterFrameBuffers::unbindCurrentFrameBuffer()
 {
     glBindBuffer(GL_FRAMEBUFFER, 0);
@@ -56,3 +72,47 @@ void WaterFrameBuffers::initialiseRefractionFrameBuffer()
     refractionDepthTexture = createDepthTextureAttachment(REFLECTION_WIDTH, REFLECTION_HEIGHT);
     unbindCurrentFrameBuffer();
 }
+
+GLuint WaterFrameBuffers::getReflectionTexture()
+{
+    return reflectionTexture;
+}
+
+GLuint WaterFrameBuffers::getRefractionTexture()
+{
+    return refractionTexture;
+}
+
+GLuint WaterFrameBuffers::getRefractionDepthTexture()
+{
+    return refractionDepthTexture;
+}
+
+void WaterFrameBuffers::bindReflectionFrameBuffer()
+{
+    bindFrameBuffer(reflectionFrameBuffer, REFLECTION_WIDTH, REFLECTION_HEIGHT);
+}
+
+void WaterFrameBuffers::bindRefractionFrameBuffer()
+{
+    bindFrameBuffer(refractionFrameBuffer,REFRACTION_WIDTH,REFRACTION_HEIGHT);
+}
+
+ void WaterFrameBuffers::bindFrameBuffer(GLuint frameBuffer, int width, int height)
+ {
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+    glViewport(0, 0, width, height);
+ }
+
+ void WaterFrameBuffers::cleanUp()
+ {
+    glDeleteFramebuffers(1, &reflectionFrameBuffer);
+    glDeleteFramebuffers(1, &refractionFrameBuffer);
+
+    glDeleteTextures(1, &reflectionTexture);
+    glDeleteTextures(1, &refractionTexture);
+    glDeleteTextures(1, &refractionDepthTexture);
+
+    glDeleteRenderbuffers(1, &reflectionDepthBuffer);
+ }
