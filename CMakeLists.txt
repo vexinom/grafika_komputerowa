@@ -41,6 +41,9 @@ add_executable(computer_graphics
     src/tube.cpp
     src/monument.cpp
     src/axolotl.cpp
+    src/reef.cpp
+    src/seaweed.cpp
+    src/particles.cpp
 )
 
 target_include_directories(computer_graphics PRIVATE

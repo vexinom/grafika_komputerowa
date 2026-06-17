@@ -9,9 +9,25 @@
 static std::string LoadFile(const char* path)
 {
     std::ifstream file(path);
+    if (!file.is_open())
+        std::cerr << "[Shader] ERROR: could not open file: " << path << std::endl;
     std::stringstream ss;
     ss << file.rdbuf();
     return ss.str();
+}
+
+// Prints the GLSL compile log for a shader stage; returns true on success.
+static bool CheckCompile(unsigned int shader, const char* path)
+{
+    int ok = 0;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
+    if (!ok)
+    {
+        char log[2048];
+        glGetShaderInfoLog(shader, sizeof(log), nullptr, log);
+        std::cerr << "\n[Shader] COMPILE ERROR in " << path << ":\n" << log << std::endl;
+    }
+    return ok != 0;
 }
 
 Shader::Shader(const char* vertexPath, const char* fragmentPath)
@@ -25,15 +41,26 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath)
     unsigned int vShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vShader, 1, &vSrc, nullptr);
     glCompileShader(vShader);
+    CheckCompile(vShader, vertexPath);
 
     unsigned int fShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fShader, 1, &fSrc, nullptr);
     glCompileShader(fShader);
+    CheckCompile(fShader, fragmentPath);
 
     ID = glCreateProgram();
     glAttachShader(ID, vShader);
     glAttachShader(ID, fShader);
     glLinkProgram(ID);
+
+    int linked = 0;
+    glGetProgramiv(ID, GL_LINK_STATUS, &linked);
+    if (!linked)
+    {
+        char log[2048];
+        glGetProgramInfoLog(ID, sizeof(log), nullptr, log);
+        std::cerr << "\n[Shader] LINK ERROR (" << vertexPath << " + " << fragmentPath << "):\n" << log << std::endl;
+    }
 
     glDeleteShader(vShader);
     glDeleteShader(fShader);

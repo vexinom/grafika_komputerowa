@@ -7,6 +7,9 @@
 #include "tube.h"
 #include "monument.h"
 #include "axolotl.h"
+#include "reef.h"
+#include "seaweed.h"
+#include "particles.h"
 #include "shader.h"
 
 class Sun
@@ -28,8 +31,15 @@ class Scene
         Tube tube;
         Monument monument;
         Axolotl axolotl;
+        Reef reef;
+        Seaweed seaweed;
+        Particles particles;
         Sun sun;
 
+        // user-controllable environment state (interactions)
+        bool  headlightOn = true;
+        float fogDensity = 0.6f;             // underwater visibility multiplier (lower = clearer)
+        glm::vec3 current = glm::vec3(8.0f, 0.0f, 4.0f);   // water-current drift
 
         void Init();
         void DailyCycle(float time);

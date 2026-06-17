@@ -7,12 +7,14 @@
 class AxolotlInstance
 {
     public:
-        std::vector<glm::vec3> pathPos;
-        std::vector<glm::vec3> pathTan;
+        std::vector<glm::vec3> pathPos;   // sampled spline positions
+        std::vector<glm::vec3> pathTan;   // unit tangents
+        std::vector<glm::vec3> pathNrm;   // parallel-transported (rotation-minimizing) normals
         std::vector<float> cumLen;
         float totalLen;
         float dist;
         float scale;
+        float boost = 0.0f;               // temporary speed boost (set when poked)
         glm::vec3 currentPos;
         glm::vec3 forward;
         glm::mat4 model;
@@ -28,9 +30,14 @@ class Axolotl
         glm::vec3 NearestTo(const glm::vec3& point) const;
         glm::vec3 HeadlightPosition() const;
 
+        // interaction hooks
+        void Poke(const glm::vec3& from);  // ray-pick: speeds up the nearest creature
+        bool  paused = false;              // freeze movement (keep swimming animation)
+        float speedScale = 1.0f;           // user-controlled cruise speed multiplier
+
     private:
         unsigned int VAO, VBO, EBO;
-        unsigned int baseColorTex, opacityTex;
+        unsigned int baseColorTex, opacityTex, metallicTex, roughnessTex;
         int indexCount;
 
         glm::vec3 bboxCenter;

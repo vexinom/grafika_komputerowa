@@ -56,4 +56,9 @@ class Application
 
         bool useCubemap = true;
         bool cubemapKeyDown = false;
+
+        // edge-trigger state for the new interactions
+        bool headlightKeyDown = false;
+        bool pauseKeyDown = false;
+        bool pokeMouseDown = false;
 };

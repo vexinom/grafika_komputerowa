@@ -8,6 +8,23 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#ifndef GL_TEXTURE_MAX_ANISOTROPY_EXT
+#define GL_TEXTURE_MAX_ANISOTROPY_EXT 0x84FE
+#endif
+#ifndef GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT
+#define GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT 0x84FF
+#endif
+
+// Anisotropic filtering keeps tiled ground textures sharp at grazing angles
+// instead of smearing into a blur in the distance.
+static void SetAniso()
+{
+    float maxA = 1.0f;
+    glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxA);
+    if (maxA > 1.0f)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, maxA < 8.0f ? maxA : 8.0f);
+}
+
 static unsigned int LoadTexture(const char* path)
 {
     int w, h, channels;
@@ -29,6 +46,7 @@ static unsigned int LoadTexture(const char* path)
     glGenerateMipmap(GL_TEXTURE_2D);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    SetAniso();
 
     stbi_image_free(data);
     return texture;
@@ -86,6 +104,7 @@ void WorldMesh::Init()
     glGenerateMipmap(GL_TEXTURE_2D);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    SetAniso();
 
     stbi_image_free(surfaceData);
 
@@ -110,6 +129,7 @@ void WorldMesh::Init()
     glGenerateMipmap(GL_TEXTURE_2D);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    SetAniso();
 
     stbi_image_free(grassData);
 
@@ -228,8 +248,9 @@ void WorldMesh::Init()
             chunk.x = ch_x;
             chunk.z = ch_z;
 
-            chunk.minBoundBox = glm::vec3(ch_x, -yShift - skirtDepth, ch_z);
-            chunk.maxBoundBox = glm::vec3(ch_x + CHUNK_SIZE, yScale - yShift, ch_z + CHUNK_SIZE);
+            // generous vertical bounds: the radial profile spans deep basin -> mountains
+            chunk.minBoundBox = glm::vec3(ch_x, -820.0f, ch_z);
+            chunk.maxBoundBox = glm::vec3(ch_x + CHUNK_SIZE, 430.0f, ch_z + CHUNK_SIZE);
             chunks.push_back(chunk);
         }
     }

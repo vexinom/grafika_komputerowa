@@ -23,6 +23,14 @@ uniform vec3 headlightColor;
 
 const float PI = 3.14159265359;
 
+// procedural detail to break up the low-res tiled ground texture
+float h2(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+float vn2(vec2 p){
+    vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(h2(i), h2(i + vec2(1,0)), f.x), mix(h2(i + vec2(0,1)), h2(i + vec2(1,1)), f.x), f.y);
+}
+float fbm2(vec2 p){ return 0.5 * vn2(p) + 0.25 * vn2(p * 2.07) + 0.125 * vn2(p * 4.13); }
+
 float DistributionGGX(vec3 N, vec3 H, float a)
 {
     float a2 = a * a;
@@ -64,10 +72,22 @@ float ShadowFactor(float NdotL)
 
 void main()
 {
-    float blendFactor = smoothstep(100.0, 110.0, Height);
-    vec3 albedo = mix(texture(sandTexture, TexCoord).rgb, texture(grassTexture, TexCoord).rgb, blendFactor);
+    // substrate by depth: dark rock/mud in the deep, bright sand on the shelf,
+    // green vegetation on the island/peninsula tops above water
+    vec3 sandCol  = texture(sandTexture, TexCoord).rgb;
+    vec3 grassCol = texture(grassTexture, TexCoord).rgb;
+    vec3 deepCol  = mix(sandCol, vec3(0.10, 0.13, 0.12), 0.7) * 0.65;
 
-    vec3 tangentNormal = mix(texture(sandNormal, TexCoord).xyz, texture(grassNormal, TexCoord).xyz, blendFactor) * 2.0 - 1.0;
+    float toSand  = smoothstep(-70.0, 0.0, Height);
+    float toGrass = smoothstep(95.0, 125.0, Height);
+    vec3 albedo = mix(deepCol, sandCol, toSand);
+    albedo = mix(albedo, grassCol, toGrass);
+
+    // procedural grain so the ground doesn't look like a blurry flat sheet
+    float grain = 0.6 * fbm2(WorldPos.xz * 0.5) + 0.4 * fbm2(WorldPos.xz * 4.0);
+    albedo *= (0.82 + 0.36 * grain);
+
+    vec3 tangentNormal = mix(texture(sandNormal, TexCoord).xyz, texture(grassNormal, TexCoord).xyz, toGrass) * 2.0 - 1.0;
     vec3 N = normalize(TBN * tangentNormal);
     vec3 V = normalize(cameraPos - WorldPos);
     vec3 L = normalize(sunDirection);
@@ -87,7 +107,7 @@ void main()
 
     float shadow = ShadowFactor(NdotL);
     vec3 direct = (kd * albedo / PI + specular) * radiance * NdotL * (1.0 - shadow);
-    vec3 ambient = albedo * mix(vec3(0.05), vec3(0.25), sunIntensity);
+    vec3 ambient = albedo * mix(vec3(0.10), vec3(0.32), sunIntensity);
 
     vec3 color = ambient + direct;
 

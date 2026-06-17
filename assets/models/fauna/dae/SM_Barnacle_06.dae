@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
+  <asset>
+    <contributor>
+      <author/>
+      <authoring_tool>FBX COLLADA exporter</authoring_tool>
+      <comments/>
+    </contributor>
+    <created>2024-02-10T11:42:31Z</created>
+    <keywords/>
+    <modified>2024-02-10T11:42:31Z</modified>
+    <revision/>
+    <subject/>
+    <title/>
+    <unit meter="0.010000" name="centimeter"/>
+    <up_axis>Y_UP</up_axis>
+  </asset>
+  <library_materials>
+    <material id="MAT_Sea_Shells" name="MAT_Sea_Shells">
+      <instance_effect url="#MAT_Sea_Shells-fx"/>
+    </material>
+  </library_materials>
+  <library_effects>
+    <effect id="MAT_Sea_Shells-fx" name="MAT_Sea_Shells">
+      <profile_COMMON>
+        <technique sid="standard">
+          <phong>
+            <emission>
+              <color sid="emission">0.000000  0.000000 0.000000 1.000000</color>
+            </emission>
+            <ambient>
+              <color sid="ambient">0.588235  0.588235 0.588235 1.000000</color>
+            </ambient>
+            <diffuse>
+              <color sid="diffuse">0.588235  0.588235 0.588235 1.000000</color>
+            </diffuse>
+            <specular>
+              <color sid="specular">0.000000  0.000000 0.000000 1.000000</color>
+            </specular>
+            <shininess>
+              <float sid="shininess">2.000000</float>
+            </shininess>
+            <reflective>
+              <color sid="reflective">0.000000  0.000000 0.000000 1.000000</color>
+            </reflective>
+            <reflectivity>
+              <float sid="reflectivity">1.000000</float>
+            </reflectivity>
+            <transparent opaque="RGB_ZERO">
+              <color sid="transparent">1.000000  1.000000 1.000000 1.000000</color>
+            </transparent>
+            <transparency>
+              <float sid="transparency">0.000000</float>
+            </transparency>
+          </phong>
+        </technique>
+      </profile_COMMON>
+    </effect>
+  </library_effects>
+  <library_geometries>
+    <geometry id="SM_Barnacle_06_LOD0-lib" name="SM_Barnacle_06_LOD0Mesh">
+      <mesh>
+        <source id="SM_Barnacle_06_LOD0-POSITION">
+          <float_array id="SM_Barnacle_06_LOD0-POSITION-array" count="63">
+1.577095 1.649536 0.000000
+0.430668 2.385223 0.000000
+-1.233346 1.698090 0.000000
+-2.314506 0.608917 0.000000
+-2.119637 -0.673615 0.000000
+-1.176792 -0.400116 0.753076
+-0.700969 -1.024475 0.753076
+-1.271730 -1.893646 0.000001
+-0.011396 -1.164917 0.710087
+-0.148650 -2.385193 0.000001
+0.961202 -1.868011 0.000001
+0.859801 -0.615814 0.710087
+2.118135 -0.976196 0.000000
+1.121536 0.121857 0.753076
+2.314507 0.394226 0.000000
+0.787460 0.835419 0.753076
+0.063764 1.150299 0.710087
+0.429348 -0.982727 0.700778
+-0.019353 -0.260834 1.059795
+-1.199060 0.354767 0.710087
+-0.689763 0.826416 0.710087
+</float_array>
+          <technique_common>
+            <accessor source="#SM_Barnacle_06_LOD0-POSITION-array" count="21" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="SM_Barnacle_06_LOD0-Normal0">
+          <float_array id="SM_Barnacle_06_LOD0-Normal0-array" count="270">
+-0.010763 0.380634 0.924663
+0.370313 0.372268 0.851049
+0.010750 0.515034 0.857102
+-0.317873 0.478281 0.818660
+-0.010763 0.380634 0.924663
+0.010750 0.515034 0.857102
+-0.233853 0.355179 0.905075
+-0.010763 0.380634 0.924663
+-0.317873 0.478281 0.818660
+-0.368500 0.159326 0.915873
+-0.233853 0.355179 0.905075
+-0.317873 0.478281 0.818660
+-0.509737 0.192737 0.838463
+-0.368500 0.159326 0.915873
+-0.317873 0.478281 0.818660
+-0.549767 -0.206041 0.809508
+-0.368500 0.159326 0.915873
+-0.509737 0.192737 0.838463
+-0.405442 -0.137752 0.903682
+-0.368500 0.159326 0.915873
+-0.549767 -0.206041 0.809508
+-0.235534 -0.366497 0.900113
+-0.405442 -0.137752 0.903682
+-0.549767 -0.206041 0.809508
+-0.340809 -0.454070 0.823207
+-0.235534 -0.366497 0.900113
+-0.549767 -0.206041 0.809508
+0.055742 -0.446904 0.892843
+-0.235534 -0.366497 0.900113
+-0.340809 -0.454070 0.823207
+0.036183 -0.529030 0.847832
+0.055742 -0.446904 0.892843
+-0.340809 -0.454070 0.823207
+0.290371 -0.476124 0.830055
+0.055742 -0.446904 0.892843
+0.036183 -0.529030 0.847832
+0.249394 -0.405883 0.879239
+0.055742 -0.446904 0.892843
+0.290371 -0.476124 0.830055
+0.355094 -0.263142 0.897031
+0.249394 -0.405883 0.879239
+0.290371 -0.476124 0.830055
+0.430965 -0.288283 0.855080
+0.355094 -0.263142 0.897031
+0.290371 -0.476124 0.830055
+0.390291 0.020542 0.920462
+0.355094 -0.263142 0.897031
+0.430965 -0.288283 0.855080
+0.505756 0.069454 0.859876
+0.390291 0.020542 0.920462
+0.430965 -0.288283 0.855080
+0.257284 0.274891 0.926412
+0.390291 0.020542 0.920462
+0.505756 0.069454 0.859876
+0.370313 0.372268 0.851049
+0.257284 0.274891 0.926412
+0.505756 0.069454 0.859876
+-0.010763 0.380634 0.924663
+0.257284 0.274891 0.926412
+0.370313 0.372268 0.851049
+-0.010763 0.380634 0.924663
+0.020531 -0.055730 0.998235
+0.257284 0.274891 0.926412
+0.020531 -0.055730 0.998235
+0.390291 0.020542 0.920462
+0.257284 0.274891 0.926412
+0.020531 -0.055730 0.998235
+0.355094 -0.263142 0.897031
+0.390291 0.020542 0.920462
+0.020531 -0.055730 0.998235
+0.249394 -0.405883 0.879239
+0.355094 -0.263142 0.897031
+0.020531 -0.055730 0.998235
+0.055742 -0.446904 0.892843
+0.249394 -0.405883 0.879239
+0.020531 -0.055730 0.998235
+-0.235534 -0.366497 0.900113
+0.055742 -0.446904 0.892843
+0.020531 -0.055730 0.998235
+-0.405442 -0.137752 0.903682
+-0.235534 -0.366497 0.900113
+0.020531 -0.055730 0.998235
+-0.368500 0.159326 0.915873
+-0.405442 -0.137752 0.903682
+0.020531 -0.055730 0.998235
+-0.233853 0.355179 0.905075
+-0.368500 0.159326 0.915873
+-0.233853 0.355179 0.905075
+0.020531 -0.055730 0.998235
+-0.010763 0.380634 0.924663
+</float_array>
+          <technique_common>
+            <accessor source="#SM_Barnacle_06_LOD0-Normal0-array" count="90" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="SM_Barnacle_06_LOD0-UV0">
+          <float_array id="SM_Barnacle_06_LOD0-UV0-array" count="42">
+0.093872 0.598145
+0.102173 0.596191
+0.094299 0.590088
+0.085510 0.590576
+0.090576 0.586670
+0.088562 0.582764
+0.081421 0.581787
+0.085266 0.574707
+0.090271 0.578369
+0.094360 0.575684
+0.092834 0.569336
+0.098755 0.576416
+0.100525 0.568848
+0.105957 0.574219
+0.100952 0.578369
+0.102722 0.581299
+0.110901 0.582031
+0.102722 0.586182
+0.109192 0.590332
+0.099243 0.589844
+0.096802 0.581543
+</float_array>
+          <technique_common>
+            <accessor source="#SM_Barnacle_06_LOD0-UV0-array" count="21" stride="2">
+              <param name="S" type="float"/>
+              <param name="T" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="SM_Barnacle_06_LOD0-VERTEX">
+          <input semantic="POSITION" source="#SM_Barnacle_06_LOD0-POSITION"/>
+        </vertices>
+        <triangles count="30" material="MAT_Sea_Shells">
+          <input semantic="VERTEX" offset="0" source="#SM_Barnacle_06_LOD0-VERTEX"/>
+          <input semantic="NORMAL" offset="1" source="#SM_Barnacle_06_LOD0-Normal0"/>
+          <input semantic="TEXCOORD" offset="2" set="0" source="#SM_Barnacle_06_LOD0-UV0"/>
+          <p> 16 0 2 0 1 1 1 2 0 2 3 3 16 4 2 1 5 0 20 6 4 16 7 2 2 8 3 19 9 5 20 10 4 2 11 3 3 12 6 19 13 5 2 14 3 4 15 7 19 16 5 3 17 6 5 18 8 19 19 5 4 20 7 6 21 9 5 22 8 4 23 7 7 24 10 6 25 9 4 26 7 8 27 11 6 28 9 7 29 10 9 30 12 8 31 11 7 32 10 10 33 13 8 34 11 9 35 12 17 36 14 8 37 11 10 38 13 11 39 15 17 40 14 10 41 13 12 42 16 11 43 15 10 44 13 13 45 17 11 46 15 12 47 16 14 48 18 13 49 17 12 50 16 15 51 19 13 52 17 14 53 18 0 54 1 15 55 19 14 56 18 16 57 2 15 58 19 0 59 1 16 60 2 18 61 20 15 62 19 18 63 20 13 64 17 15 65 19 18 66 20 11 67 15 13 68 17 18 69 20 17 70 14 11 71 15 18 72 20 8 73 11 17 74 14 18 75 20 6 76 9 8 77 11 18 78 20 5 79 8 6 80 9 18 81 20 19 82 5 5 83 8 18 84 20 20 85 4 19 86 5 20 87 4 18 88 20 16 89 2</p>
+        </triangles>
+      </mesh>
+    </geometry>
+    <geometry id="SM_Barnacle_06_LOD1-lib" name="SM_Barnacle_06_LOD1Mesh">
+      <mesh>
+        <source id="SM_Barnacle_06_LOD1-POSITION">
+          <float_array id="SM_Barnacle_06_LOD1-POSITION-array" count="45">
+-0.019353 -0.260834 1.059795
+-2.314506 0.608917 0.000000
+2.118135 -0.976196 0.000000
+0.430668 2.385223 0.000000
+-0.148650 -2.385193 0.000001
+0.970254 0.444977 0.753076
+-1.233346 1.698090 0.000000
+2.314507 0.394226 0.000000
+-1.199060 0.354767 0.710087
+0.063764 1.150299 0.710087
+1.577095 1.649536 0.000000
+-0.492952 -1.066833 0.740108
+-1.271730 -1.893646 0.000001
+-2.119637 -0.673615 0.000000
+0.961202 -1.868011 0.000001
+</float_array>
+          <technique_common>
+            <accessor source="#SM_Barnacle_06_LOD1-POSITION-array" count="15" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="SM_Barnacle_06_LOD1-Normal0">
+          <float_array id="SM_Barnacle_06_LOD1-Normal0-array" count="162">
+-0.383986 0.134530 0.913486
+-0.011122 0.401336 0.915864
+-0.307546 0.465603 0.829837
+0.250794 -0.417843 0.873218
+-0.159596 -0.372878 0.914052
+0.026088 -0.484167 0.874587
+0.354954 0.363819 0.861187
+0.349736 0.136090 0.926911
+0.489486 0.079384 0.868390
+-0.350494 -0.419444 0.837389
+-0.159596 -0.372878 0.914052
+-0.487550 -0.195652 0.850891
+0.349736 0.136090 0.926911
+0.030011 -0.108504 0.993643
+0.393380 -0.228359 0.890564
+-0.383986 0.134530 0.913486
+0.030011 -0.108504 0.993643
+-0.011122 0.401336 0.915864
+-0.307546 0.465603 0.829837
+-0.011122 0.401336 0.915864
+0.061711 0.483682 0.873066
+0.489486 0.079384 0.868390
+0.349736 0.136090 0.926911
+0.393380 -0.228359 0.890564
+-0.159596 -0.372878 0.914052
+-0.383986 0.134530 0.913486
+-0.487550 -0.195652 0.850891
+-0.504984 0.155669 0.848975
+-0.383986 0.134530 0.913486
+-0.307546 0.465603 0.829837
+-0.011122 0.401336 0.915864
+0.349736 0.136090 0.926911
+0.354954 0.363819 0.861187
+-0.011122 0.401336 0.915864
+0.030011 -0.108504 0.993643
+0.349736 0.136090 0.926911
+-0.011122 0.401336 0.915864
+0.354954 0.363819 0.861187
+0.061711 0.483682 0.873066
+0.030011 -0.108504 0.993643
+-0.383986 0.134530 0.913486
+-0.159596 -0.372878 0.914052
+0.030011 -0.108504 0.993643
+-0.159596 -0.372878 0.914052
+0.250794 -0.417843 0.873218
+0.026088 -0.484167 0.874587
+-0.159596 -0.372878 0.914052
+-0.350494 -0.419444 0.837389
+-0.487550 -0.195652 0.850891
+-0.383986 0.134530 0.913486
+-0.504984 0.155669 0.848975
+0.393380 -0.228359 0.890564
+0.030011 -0.108504 0.993643
+0.250794 -0.417843 0.873218
+</float_array>
+          <technique_common>
+            <accessor source="#SM_Barnacle_06_LOD1-Normal0-array" count="54" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="SM_Barnacle_06_LOD1-UV0">
+          <float_array id="SM_Barnacle_06_LOD1-UV0-array" count="30">
+0.081421 0.581787
+0.100525 0.568848
+0.110901 0.582031
+0.093872 0.598145
+0.096802 0.581543
+0.109192 0.590332
+0.085510 0.590576
+0.088562 0.582764
+0.101147 0.587840
+0.102173 0.596191
+0.095686 0.575905
+0.092834 0.569336
+0.085266 0.574707
+0.094299 0.590088
+0.105957 0.574219
+</float_array>
+          <technique_common>
+            <accessor source="#SM_Barnacle_06_LOD1-UV0-array" count="15" stride="2">
+              <param name="S" type="float"/>
+              <param name="T" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="SM_Barnacle_06_LOD1-VERTEX">
+          <input semantic="POSITION" source="#SM_Barnacle_06_LOD1-POSITION"/>
+        </vertices>
+        <triangles count="18" material="MAT_Sea_Shells">
+          <input semantic="VERTEX" offset="0" source="#SM_Barnacle_06_LOD1-VERTEX"/>
+          <input semantic="NORMAL" offset="1" source="#SM_Barnacle_06_LOD1-Normal0"/>
+          <input semantic="TEXCOORD" offset="2" set="0" source="#SM_Barnacle_06_LOD1-UV0"/>
+          <p> 8 0 7 9 1 13 6 2 6 14 3 14 11 4 10 4 5 1 10 6 9 5 7 8 7 8 5 12 9 11 11 10 10 13 11 12 5 12 8 0 13 4 2 14 2 8 15 7 0 16 4 9 17 13 6 18 6 9 19 13 3 20 3 7 21 5 5 22 8 2 23 2 11 24 10 8 25 7 13 26 12 1 27 0 8 28 7 6 29 6 9 30 13 5 31 8 10 32 9 9 33 13 0 34 4 5 35 8 9 36 13 10 37 9 3 38 3 0 39 4 8 40 7 11 41 10 0 42 4 11 43 10 14 44 14 4 45 1 11 46 10 12 47 11 13 48 12 8 49 7 1 50 0 2 51 2 0 52 4 14 53 14</p>
+        </triangles>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="SM_Barnacle_06" name="SM_Barnacle_06">
+      <node name="SM_Barnacle_06_LOD0" id="SM_Barnacle_06_LOD0" layer="shells" sid="SM_Barnacle_06_LOD0">
+        <matrix sid="matrix">1.000000 0.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000 0.000000 -1.000000 0.000000 0.000000 0.000000 0.000000 0.000000 1.000000</matrix>
+        <instance_geometry url="#SM_Barnacle_06_LOD0-lib">
+          <bind_material>
+            <technique_common>
+              <instance_material symbol="MAT_Sea_Shells" target="#MAT_Sea_Shells"/>
+            </technique_common>
+          </bind_material>
+        </instance_geometry>
+        <extra>
+          <technique profile="FCOLLADA">
+            <visibility>1.000000</visibility>
+          </technique>
+        </extra>
+      </node>
+      <node name="SM_Barnacle_06_LOD1" id="SM_Barnacle_06_LOD1" layer="shells" sid="SM_Barnacle_06_LOD1">
+        <matrix sid="matrix">1.000000 0.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000 0.000000 -1.000000 0.000000 0.000000 0.000000 0.000000 0.000000 1.000000</matrix>
+        <instance_geometry url="#SM_Barnacle_06_LOD1-lib">
+          <bind_material>
+            <technique_common>
+              <instance_material symbol="MAT_Sea_Shells" target="#MAT_Sea_Shells"/>
+            </technique_common>
+          </bind_material>
+        </instance_geometry>
+        <extra>
+          <technique profile="FCOLLADA">
+            <visibility>1.000000</visibility>
+          </technique>
+        </extra>
+      </node>
+      <extra>
+        <technique profile="MAX3D">
+          <frame_rate>30.000000</frame_rate>
+        </technique>
+        <technique profile="FCOLLADA">
+          <start_time>0.000000</start_time>
+          <end_time>3.333333</end_time>
+        </technique>
+      </extra>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene>
+    <instance_visual_scene url="#SM_Barnacle_06"/>
+  </scene>
+</COLLADA>

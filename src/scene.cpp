@@ -9,19 +9,18 @@ void Scene::Init()
     skydome.Init();
     cubemap.Init();
     tube.Init();
-    monument.Init(1224.0f, 926.0f, 70.0f, 200.0f);
+    monument.Init(1320.0f, 1700.0f, -10.0f, 50.0f);   // ruined pillar on the shelf
     axolotl.Init();
+    reef.Init();
+    particles.Init(2400);
 }
 
 
 void Scene::DailyCycle(float time)
 {
-
-    float timeSpeed = time * 0.02f;
-    sun.direction.x = cos(timeSpeed);
-    sun.direction.y = sin(timeSpeed);
-    sun.direction.z = -0.5f;
-    sun.direction = glm::normalize(sun.direction);
-
-    
+    // Fixed, high daytime sun. The previous day/night cycle frequently left the
+    // scene dark (and disabled the god rays). A steady bright sun keeps the
+    // underwater scene readable, shadows crisp and the light shafts always on.
+    (void)time;
+    sun.direction = glm::normalize(glm::vec3(0.35f, 0.82f, -0.45f));
 }

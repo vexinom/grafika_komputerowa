@@ -3,14 +3,14 @@
 
 Camera::Camera()
 {
-    Position = glm::vec3(15.0f, 15.0f, 15.0f);
-    Orientation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-
-    FOV = 45.0f;
+    FOV = 55.0f;
     Aspect = 800.0f / 600.0f;
 
     NearPlane = 0.1f;
-    FarPlane = 1500.0f;
+    FarPlane = 4000.0f;
+
+    // spawn on the shallow shelf among the reef, looking across it toward the deep drop-off
+    SetView(glm::vec3(1024.0f, 60.0f, 1900.0f), 0.0f, glm::radians(-7.0f));
 }
 
 glm::mat4 Camera::GetViewMatrix() const

@@ -89,10 +89,19 @@ static glm::vec3 RotateAroundAxis(const glm::vec3& v, const glm::vec3& axis, flo
     return v * c + glm::cross(axis, v) * s + axis * glm::dot(axis, v) * (1.0f - c);
 }
 
+// ---------------------------------------------------------------------------
+// Parallel Transport Frames (rotation-minimizing frames) along a closed spline.
+// For B04 the orientation of the creature is taken directly from the PTF normal,
+// instead of an ad-hoc cross-product (Frenet-like) frame. The frame is propagated
+// by rotating the previous normal by the minimal rotation that maps T[i-1] -> T[i],
+// then the closed-loop holonomy (twist mismatch at the seam) is spread evenly over
+// the whole loop so the frame is continuous all the way around.
+// ---------------------------------------------------------------------------
 static void BuildPath(AxolotlInstance& inst, glm::vec3 center, float radius, float yWobble, float scale, float startDist)
 {
     inst.scale = scale;
     inst.dist = startDist;
+    inst.boost = 0.0f;
 
     const int controlCount = 8;
     std::vector<glm::vec3> control;
@@ -103,6 +112,7 @@ static void BuildPath(AxolotlInstance& inst, glm::vec3 center, float radius, flo
     }
 
     const int perSegment = 40;
+    inst.pathPos.clear();
     for (int i = 0; i < controlCount; i++)
     {
         glm::vec3 p0 = control[(i - 1 + controlCount) % controlCount];
@@ -117,11 +127,64 @@ static void BuildPath(AxolotlInstance& inst, glm::vec3 center, float radius, flo
 
     int m = (int)inst.pathPos.size();
     inst.pathTan.resize(m);
+    inst.pathNrm.resize(m);
     inst.cumLen.resize(m);
 
+    // central-difference unit tangents (closed loop)
     for (int i = 0; i < m; i++)
     {
         inst.pathTan[i] = glm::normalize(inst.pathPos[(i + 1) % m] - inst.pathPos[(i - 1 + m) % m]);
+    }
+
+    // seed normal perpendicular to the first tangent
+    glm::vec3 T0 = inst.pathTan[0];
+    glm::vec3 up = glm::abs(T0.y) > 0.99f ? glm::vec3(1.0f, 0.0f, 0.0f) : glm::vec3(0.0f, 1.0f, 0.0f);
+    inst.pathNrm[0] = glm::normalize(up - T0 * glm::dot(up, T0));
+
+    // propagate the frame with the minimal rotation between successive tangents
+    for (int i = 1; i < m; i++)
+    {
+        glm::vec3 prevT = inst.pathTan[i - 1];
+        glm::vec3 curT  = inst.pathTan[i];
+        glm::vec3 axis  = glm::cross(prevT, curT);
+        float len = glm::length(axis);
+        glm::vec3 n = inst.pathNrm[i - 1];
+        if (len > 1e-6f)
+        {
+            axis /= len;
+            float angle = atan2(len, glm::dot(prevT, curT));
+            n = RotateAroundAxis(n, axis, angle);
+        }
+        // re-orthonormalise against the current tangent
+        inst.pathNrm[i] = glm::normalize(n - curT * glm::dot(n, curT));
+    }
+
+    // close the loop: transport once more onto T0 and measure the residual twist
+    {
+        glm::vec3 prevT = inst.pathTan[m - 1];
+        glm::vec3 curT  = inst.pathTan[0];
+        glm::vec3 axis  = glm::cross(prevT, curT);
+        float len = glm::length(axis);
+        glm::vec3 n = inst.pathNrm[m - 1];
+        if (len > 1e-6f)
+        {
+            axis /= len;
+            float angle = atan2(len, glm::dot(prevT, curT));
+            n = RotateAroundAxis(n, axis, angle);
+        }
+        n = glm::normalize(n - curT * glm::dot(n, curT));
+
+        // signed angle between the transported normal and the seed normal around T0
+        glm::vec3 N0 = inst.pathNrm[0];
+        glm::vec3 B0 = glm::cross(curT, N0);
+        float defect = atan2(glm::dot(n, B0), glm::dot(n, N0));
+
+        // distribute the correction proportionally to arc-length so the frame closes
+        for (int i = 0; i < m; i++)
+        {
+            float frac = (float)i / (float)m;
+            inst.pathNrm[i] = glm::normalize(RotateAroundAxis(inst.pathNrm[i], inst.pathTan[i], -defect * frac));
+        }
     }
 
     inst.cumLen[0] = 0.0f;
@@ -196,13 +259,15 @@ void Axolotl::Init()
     glBindVertexArray(0);
 
     baseColorTex = LoadTexture((dir + "DefaultMaterial_Base_Color.png").c_str());
-    opacityTex = LoadTexture((dir + "DefaultMaterial_Opacity.png").c_str());
+    opacityTex   = LoadTexture((dir + "DefaultMaterial_Opacity.png").c_str());
+    metallicTex  = LoadTexture((dir + "DefaultMaterial_Metallic.png").c_str());
+    roughnessTex = LoadTexture((dir + "DefaultMaterial_Roughness.png").c_str());
 
     animTime = 0.0f;
     instances.resize(3);
-    BuildPath(instances[0], glm::vec3(300.0f, 62.0f, 560.0f), 150.0f, 12.0f, 1.6f, 0.0f);
-    BuildPath(instances[1], glm::vec3(560.0f, 58.0f, 320.0f), 140.0f, 10.0f, 1.0f, 130.0f);
-    BuildPath(instances[2], glm::vec3(360.0f, 55.0f, 760.0f), 120.0f, 9.0f, 0.7f, 260.0f);
+    BuildPath(instances[0], glm::vec3(1024.0f, 55.0f, 1500.0f), 300.0f, 16.0f, 1.6f, 0.0f);
+    BuildPath(instances[1], glm::vec3(1300.0f, 30.0f, 1300.0f), 280.0f, 14.0f, 1.0f, 130.0f);
+    BuildPath(instances[2], glm::vec3(760.0f, 45.0f, 1480.0f), 250.0f, 12.0f, 0.7f, 260.0f);
 }
 
 void Axolotl::Update(float dt)
@@ -210,12 +275,16 @@ void Axolotl::Update(float dt)
     if (dt > 0.05f) dt = 0.05f;
     animTime = fmod(animTime + dt, 1000.0f);
 
-    float speed = 22.0f;
+    float baseSpeed = 22.0f;
     for (size_t k = 0; k < instances.size(); k++)
     {
         AxolotlInstance& inst = instances[k];
         int m = (int)inst.pathPos.size();
-        inst.dist = fmod(inst.dist + speed * dt, inst.totalLen);
+
+        if (inst.boost > 0.0f) inst.boost = glm::max(0.0f, inst.boost - dt);
+        float speed = baseSpeed * speedScale + inst.boost * 60.0f;
+        if (!paused)
+            inst.dist = fmod(inst.dist + speed * dt, inst.totalLen);
 
         int idx = 0;
         while (idx < m - 1 && inst.cumLen[idx + 1] < inst.dist) idx++;
@@ -225,25 +294,44 @@ void Axolotl::Update(float dt)
 
         glm::vec3 pos = glm::mix(inst.pathPos[idx], inst.pathPos[j], f);
         glm::vec3 T = glm::normalize(glm::mix(inst.pathTan[idx], inst.pathTan[j], f));
-        glm::vec3 S = glm::normalize(glm::cross(T, glm::vec3(0.0f, 1.0f, 0.0f)));
-        glm::vec3 U = glm::normalize(glm::cross(S, T));
 
+        // interpolate the parallel-transported normal and re-orthonormalise
+        glm::vec3 N = glm::mix(inst.pathNrm[idx], inst.pathNrm[j], f);
+        N = N - T * glm::dot(N, T);
+        if (glm::length(N) < 1e-5f) N = inst.pathNrm[idx];
+        N = glm::normalize(N);
+        glm::vec3 B = glm::normalize(glm::cross(T, N));
+
+        // bank into turns for a livelier look (rotates the PTF frame around T)
         glm::vec3 Tahead = inst.pathTan[(idx + 4) % m];
-        float turn = glm::dot(glm::cross(T, Tahead), U);
+        float turn = glm::dot(glm::cross(T, Tahead), N);
         float bank = glm::clamp(turn * 9.0f, -0.6f, 0.6f);
-        S = RotateAroundAxis(S, T, bank);
-        U = RotateAroundAxis(U, T, bank);
+        N = RotateAroundAxis(N, T, bank);
+        B = RotateAroundAxis(B, T, bank);
 
+        // model axes: local +X -> -B (side), local +Y -> -T (body/forward), local +Z -> N (up)
         glm::mat4 basis(1.0f);
-        basis[0] = glm::vec4(-S, 0.0f);
+        basis[0] = glm::vec4(-B, 0.0f);
         basis[1] = glm::vec4(-T, 0.0f);
-        basis[2] = glm::vec4(U, 0.0f);
+        basis[2] = glm::vec4(N, 0.0f);
 
         float sc = baseScale * inst.scale;
         inst.model = glm::translate(glm::mat4(1.0f), pos) * basis * glm::scale(glm::mat4(1.0f), glm::vec3(sc)) * glm::translate(glm::mat4(1.0f), -bboxCenter);
         inst.currentPos = pos;
         inst.forward = T;
     }
+}
+
+void Axolotl::Poke(const glm::vec3& from)
+{
+    float best = 1e18f;
+    int bestK = -1;
+    for (size_t k = 0; k < instances.size(); k++)
+    {
+        float d = glm::distance(from, instances[k].currentPos);
+        if (d < best) { best = d; bestK = (int)k; }
+    }
+    if (bestK >= 0) instances[bestK].boost = 1.5f;
 }
 
 void Axolotl::Draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection, const glm::vec3& sunDirection, const glm::vec3& cameraPos, const glm::mat4& lightSpaceMatrix, unsigned int shadowMap)
@@ -266,6 +354,12 @@ void Axolotl::Draw(Shader& shader, const glm::mat4& view, const glm::mat4& proje
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, opacityTex);
     shader.SetInt("opacity", 1);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, metallicTex);
+    shader.SetInt("metallicMap", 2);
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, roughnessTex);
+    shader.SetInt("roughnessMap", 3);
     glActiveTexture(GL_TEXTURE5);
     glBindTexture(GL_TEXTURE_2D, shadowMap);
     shader.SetInt("shadowMap", 5);

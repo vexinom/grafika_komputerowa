@@ -54,12 +54,12 @@ class WorldMesh
         unsigned int grassNormalTexture;
 
         int width, height;
-        float yScale = 146.0f;
+        float yScale = 38.0f;     // flat, spacious, fully-submerged ocean floor
         float yShift = 0.0f;
         float skirtDepth = 5.0f;
 
         float metallic = 0.0f;
-        float roughness = 0.6f;
+        float roughness = 0.88f;  // sand reads better as a rough, non-shiny surface
 
         glm::vec3 headlightPos = glm::vec3(0.0f);
         glm::vec3 headlightColor = glm::vec3(0.0f);

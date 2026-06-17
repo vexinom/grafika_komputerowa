@@ -64,6 +64,9 @@ bool Application::Init()
     shaders["object"] = new Shader("shaders/object_vertex.glsl", "shaders/object_fragment.glsl");
     shaders["depthobject"] = new Shader("shaders/depth_object_vertex.glsl", "shaders/depth_fragment.glsl");
     shaders["axolotl"] = new Shader("shaders/axolotl_vertex.glsl", "shaders/axolotl_fragment.glsl");
+    shaders["reef"] = new Shader("shaders/reef_vertex.glsl", "shaders/reef_fragment.glsl");
+    shaders["seaweed"] = new Shader("shaders/seaweed_vertex.glsl", "shaders/seaweed_fragment.glsl");
+    shaders["particle"] = new Shader("shaders/particle_vertex.glsl", "shaders/particle_fragment.glsl");
 
     glDisable(GL_CULL_FACE);
 
@@ -130,6 +133,7 @@ void Application::ShadowPass()
     shaders["depthobject"]->Use();
     scene.monument.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
     scene.axolotl.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
+    scene.reef.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, width, height);
@@ -191,12 +195,30 @@ void Application::UseFBO(float time)
     glClear(GL_COLOR_BUFFER_BIT);
     glDisable(GL_DEPTH_TEST);
 
+    glm::mat4 proj = scene.camera.GetProjectionMatrix();
+    glm::mat4 viewMat = scene.camera.GetViewMatrix();
+
+    // project the sun onto the screen for the volumetric light shafts
+    glm::vec4 sunClip = proj * viewMat * glm::vec4(scene.camera.Position + glm::normalize(scene.sun.direction) * 2000.0f, 1.0f);
+    glm::vec2 sunScreen(0.5f);
+    float sunVisible = 0.0f;
+    if (sunClip.w > 0.0f)
+    {
+        glm::vec3 ndc = glm::vec3(sunClip) / sunClip.w;
+        sunScreen = glm::vec2(ndc.x, ndc.y) * 0.5f + 0.5f;
+        sunVisible = 1.0f;
+    }
+
     shaders["postprocess"]->Use();
     shaders["postprocess"]->SetInt("sceneColor", 0);
     shaders["postprocess"]->SetInt("sceneDepth", 1);
-    shaders["postprocess"]->SetMat4("invViewProj", glm::inverse(scene.camera.GetProjectionMatrix() * scene.camera.GetViewMatrix()));
+    shaders["postprocess"]->SetMat4("invViewProj", glm::inverse(proj * viewMat));
     shaders["postprocess"]->SetVec3("cameraPos", scene.camera.Position);
     shaders["postprocess"]->SetVec3("sunDirection", scene.sun.direction);
+    shaders["postprocess"]->SetFloat("time", time);
+    shaders["postprocess"]->SetFloat("fogDensity", scene.fogDensity);
+    shaders["postprocess"]->SetVec2("sunScreenPos", sunScreen);
+    shaders["postprocess"]->SetFloat("sunVisible", sunVisible);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, colorBuffer);
@@ -227,8 +249,12 @@ void Application::Run()
         scene.DailyCycle(currentFrame);
 
         scene.axolotl.Update(deltaTime);
-        scene.worldmesh.headlightPos = scene.axolotl.HeadlightPosition();
-        scene.worldmesh.headlightColor = glm::vec3(1.6f, 1.5f, 1.2f);
+        scene.particles.Update(deltaTime, scene.camera.Position, currentFrame, scene.current);
+
+        glm::vec3 headlightPos = scene.axolotl.HeadlightPosition();
+        glm::vec3 headlightColor = scene.headlightOn ? glm::vec3(1.6f, 1.5f, 1.2f) : glm::vec3(0.0f);
+        scene.worldmesh.headlightPos = headlightPos;
+        scene.worldmesh.headlightColor = headlightColor;
 
         ShadowPass();
 
@@ -254,15 +280,25 @@ void Application::Run()
 
         scene.monument.Draw(*shaders["object"], view, projection, scene.sun.direction, scene.camera.Position);
 
+        scene.reef.Draw(*shaders["reef"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap, headlightPos, headlightColor);
+
         scene.axolotl.Draw(*shaders["axolotl"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap);
 
         if (useCubemap)
             scene.cubemap.Draw(*shaders["cubemap"], view, projection);
         else
             scene.skydome.Draw(*shaders["skydome"], viewProjection, scene.camera.Position, scene.sun.direction, currentFrame);
-        
-        
+
+
         glDepthMask(GL_TRUE);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthMask(GL_FALSE);
+
+        // suspended particles (bubbles + marine snow), then the water surface
+        scene.particles.Draw(*shaders["particle"], view, projection, (float)height);
+
+        // particles restore their own GL state, so re-assert transparency for the water
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDepthMask(GL_FALSE);
@@ -361,11 +397,72 @@ void Application::Input_Events()
         scene.worldmesh.metallic = glm::clamp(scene.worldmesh.metallic + deltaTime, 0.0f, 1.0f);
 
     if(glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS)
-        scene.camera.SetView(glm::vec3(1224.0f, 200.0f, 1180.0f), 0.0f, glm::radians(-18.0f));
+        scene.camera.SetView(glm::vec3(1024.0f, 360.0f, 1844.0f), 0.0f, glm::radians(-35.0f));
 
     if(glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS)
     {
         glm::vec3 target = scene.axolotl.NearestTo(scene.camera.Position);
         scene.camera.LookAt(target + glm::vec3(24.0f, 28.0f, 24.0f), target);
+    }
+
+    // ---- Interaction 1: submarine / creature headlight on-off (L) ----
+    if(glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
+    {
+        if(!headlightKeyDown)
+        {
+            scene.headlightOn = !scene.headlightOn;
+            headlightKeyDown = true;
+        }
+    }
+    else
+    {
+        headlightKeyDown = false;
+    }
+
+    // ---- Interaction 2: underwater visibility / fog density (5 clearer, 6 murkier) ----
+    if(glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS)
+        scene.fogDensity = glm::clamp(scene.fogDensity - deltaTime * 0.8f, 0.2f, 3.0f);
+    if(glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS)
+        scene.fogDensity = glm::clamp(scene.fogDensity + deltaTime * 0.8f, 0.2f, 3.0f);
+
+    // ---- Interaction 3: water current strength (7 weaker, 8 stronger) ----
+    if(glfwGetKey(window, GLFW_KEY_7) == GLFW_PRESS)
+        scene.current *= glm::max(0.0f, 1.0f - deltaTime);
+    if(glfwGetKey(window, GLFW_KEY_8) == GLFW_PRESS)
+        scene.current += glm::normalize(glm::vec3(1.0f, 0.0f, 0.5f)) * deltaTime * 20.0f;
+
+    // ---- Interaction 4: pause / resume creatures (Space) ----
+    if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+    {
+        if(!pauseKeyDown)
+        {
+            scene.axolotl.paused = !scene.axolotl.paused;
+            pauseKeyDown = true;
+        }
+    }
+    else
+    {
+        pauseKeyDown = false;
+    }
+
+    // ---- Interaction 5: creature cruise speed (Up / Down arrows) ----
+    if(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+        scene.axolotl.speedScale = glm::clamp(scene.axolotl.speedScale + deltaTime, 0.2f, 4.0f);
+    if(glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+        scene.axolotl.speedScale = glm::clamp(scene.axolotl.speedScale - deltaTime, 0.2f, 4.0f);
+
+    // ---- Interaction 6: aim + left-click to poke a creature (ray picking) ----
+    if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+    {
+        if(!pokeMouseDown)
+        {
+            glm::vec3 forward = scene.camera.Orientation * glm::vec3(0.0f, 0.0f, -1.0f);
+            scene.axolotl.Poke(scene.camera.Position + forward * 120.0f);
+            pokeMouseDown = true;
+        }
+    }
+    else
+    {
+        pokeMouseDown = false;
     }
 }
