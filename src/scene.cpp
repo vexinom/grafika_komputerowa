@@ -18,9 +18,12 @@ void Scene::Init()
 
 void Scene::DailyCycle(float time)
 {
-    // Fixed, high daytime sun. The previous day/night cycle frequently left the
-    // scene dark (and disabled the god rays). A steady bright sun keeps the
-    // underwater scene readable, shadows crisp and the light shafts always on.
-    (void)time;
-    sun.direction = glm::normalize(glm::vec3(0.35f, 0.82f, -0.45f));
+
+    float timeSpeed = time * 0.2f;
+    sun.direction.x = cos(timeSpeed);
+    sun.direction.y = sin(timeSpeed);
+    sun.direction.z = -0.5f;
+    sun.direction = glm::normalize(sun.direction);
+
+    
 }

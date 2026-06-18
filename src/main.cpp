@@ -4,6 +4,7 @@
 #include <windows.h>
 
 #include "application.h"
+#include "config.h"
 
 
 extern "C" {
@@ -13,7 +14,7 @@ extern "C" {
 
 int main()
 {
-    Application app(1280, 720);
+    Application app(config::WINDOW_WIDTH, config::WINDOW_HEIGHT);  // initialization of the entire app
     if (!app.Init())
     {
         glfwTerminate();

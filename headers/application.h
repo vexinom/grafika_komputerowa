@@ -8,6 +8,7 @@
 #include <string>
 
 #include "shader.h"
+#include "waterFrameBuffers.h"
 
 class Application
 {
@@ -15,17 +16,23 @@ class Application
         GLFWwindow* window;
         Scene scene;
         std::map<std::string, Shader*> shaders;
+        WaterFrameBuffers waterFrameBuffer;
         int height;
         int width;
 
         bool Init();
-        bool Init_FBO();
         bool Init_Shadow();
         void Run();
-        void Shutdown();
+    
         void Input_Events();
-        void UseFBO(float time);
+        void drawFBO(float time);
         void ShadowPass();
+        void cleanUp();
+        void drawReflectionPreview();
+
+        void openGLConfiguration();
+        void openGLDisableMouse();
+        void shadersInit();
 
         Application(int _width, int _height)
         {
@@ -43,11 +50,6 @@ class Application
 
         float deltaTime = 0.0f;
         float lastFrame = 0.0f;
-
-        unsigned int postProcessFBO;
-        unsigned int colorBuffer;
-        unsigned int depthBuffer;
-        unsigned int quadVAO, quadVBO;
 
         unsigned int shadowFBO;
         unsigned int shadowMap;

@@ -44,6 +44,7 @@ add_executable(computer_graphics
     src/reef.cpp
     src/seaweed.cpp
     src/particles.cpp
+    src/waterFrameBuffers.cpp
 )
 
 target_include_directories(computer_graphics PRIVATE
