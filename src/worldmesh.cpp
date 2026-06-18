@@ -248,9 +248,8 @@ void WorldMesh::Init()
             chunk.x = ch_x;
             chunk.z = ch_z;
 
-            // generous vertical bounds: the radial profile spans deep basin -> mountains
-            chunk.minBoundBox = glm::vec3(ch_x, -820.0f, ch_z);
-            chunk.maxBoundBox = glm::vec3(ch_x + CHUNK_SIZE, 430.0f, ch_z + CHUNK_SIZE);
+            chunk.minBoundBox = glm::vec3(ch_x, -yShift - skirtDepth, ch_z);
+            chunk.maxBoundBox = glm::vec3(ch_x + CHUNK_SIZE, yScale - yShift, ch_z + CHUNK_SIZE);
             chunks.push_back(chunk);
         }
     }
@@ -430,7 +429,7 @@ std::vector<Plane> GetFrustumPlanes(const glm::mat4 & viewProj)
     return planes;
 }
 
-bool IsBoxInFrustrum(const glm::vec3 & min, const glm::vec3 max, const std::vector<Plane> planes)
+bool IsBoxInFrustrum(const glm::vec3 & min, const glm::vec3 max, const std::vector<Plane>& planes)
 {
     for(int i = 0; i < planes.size(); i++)
     {

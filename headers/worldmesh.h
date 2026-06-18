@@ -3,6 +3,7 @@
 #include <vector> 
 #include <glm/glm.hpp>
 #include "shader.h"
+#include "config.h"
 
 class Chunk
 {
@@ -54,8 +55,8 @@ class WorldMesh
         unsigned int grassNormalTexture;
 
         int width, height;
-        float yScale = 38.0f;     // flat, spacious, fully-submerged ocean floor
-        float yShift = 0.0f;
+        float yScale = config::Y_SCALE_TERRAIN;     // flat, spacious, fully-submerged ocean floor
+        float yShift = config::Y_SHIFT_TERRAIN;
         float skirtDepth = 5.0f;
 
         float metallic = 0.0f;
@@ -66,5 +67,5 @@ class WorldMesh
 };
 
 std::vector<Plane> GetFrustumPlanes(const glm::mat4 & viewProj);
-bool IsBoxInFrustrum(const glm::vec3 & min, const glm::vec3 max, const std::vector<Plane> planes);
+bool IsBoxInFrustrum(const glm::vec3 & min, const glm::vec3 max, const std::vector<Plane>& planes);
 glm::vec3 GetVertexNormal(int globalX, int globalZ, float * data, int width, int height, int channels, float yScale);

@@ -19,34 +19,11 @@ uniform vec2 textureSize;
 uniform vec3 terrainParams;
 uniform float textureTileSize;
 
-// ---------------------------------------------------------------------------
-// Radial ocean profile (must match depth_vertex.glsl and Reef::seabed):
-//   centre  -> deep, characterful ocean floor
-//   ring 1  -> slow, spreading slope upward
-//   ring 2  -> broad shallow sandy shelf (plycizna)
-//   ring 3  -> peninsulas / islands broken out of a height-map mask
-// ---------------------------------------------------------------------------
-const float DEEP   = -700.0;   // much deeper ocean basin
-const float SHELF  =   30.0;
-const float ISLAND =  320.0;   // taller surrounding peninsulas
-
 float terrainHeight(vec2 g)
 {
     vec2 uv = g / textureSize;
-    float s = texture(heightmap, uv).r;            // height-map detail [0,1]
-    float rn = length(uv - vec2(0.5)) * 2.0;       // 0 centre .. 1 edge .. ~1.41 corner
-
-    float slope = smoothstep(0.40, 0.72, rn);      // deep -> shelf
-    float base  = mix(DEEP, SHELF, slope);
-    float isl   = smoothstep(0.90, 1.30, rn);      // shelf -> island
-    base = mix(base, ISLAND, isl);
-
-    float deepAmt = 1.0 - slope;                    // rugged in the deep + on islands, gentle on the shelf
-    float amt = 18.0 + 160.0 * deepAmt + 190.0 * isl;
-    float h = base + (s - 0.5) * 2.0 * amt;
-
-    h -= isl * (1.0 - s) * 240.0;                  // carve channels -> peninsulas instead of a solid ring
-    return h;
+    float s = texture(heightmap, uv).r;
+    return (s * terrainParams.x) + terrainParams.y;
 }
 
 void main()

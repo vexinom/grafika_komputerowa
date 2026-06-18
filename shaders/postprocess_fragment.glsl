@@ -10,6 +10,8 @@ uniform mat4 invViewProj;
 uniform vec3 cameraPos;
 uniform float time;
 uniform vec3 sunDirection;
+uniform float base_water_level = 80.0;
+
 
 // controls
 uniform float fogDensity;     // user-tunable underwater visibility (lower = clearer)
@@ -17,7 +19,6 @@ uniform vec2  sunScreenPos;   // sun position in screen UV (for a soft lens glow
 uniform float sunVisible;     // 1.0 when the sun is in front of the camera
 
 const float SCALE = 5.0;
-const float base_water_level = 80.0;
 
 const mat2 mr = mat2(0.54030, 0.84147, -0.84147, 0.54030);
 

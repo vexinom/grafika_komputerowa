@@ -7,6 +7,7 @@ uniform mat4 view;
 uniform mat4 projection;
 uniform vec2 chunkOffset;
 uniform float time;
+uniform float water_level;
 
 out vec4 v_color;
 out vec3 FragPos;
@@ -15,7 +16,6 @@ out vec3 Normal;
 const float MSCALE = 0.05; 
 const float TSCALE = 0.02;  
 const float SCALE  = 5.0;  
-float water_level = 80.0;
 
 const mat2 mr = mat2(0.54030, 0.84147, -0.84147, 0.54030);
 

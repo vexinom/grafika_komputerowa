@@ -5,7 +5,7 @@
 void Scene::Init()
 {
     worldmesh.Init();
-    watermesh.Init(90.0f, 50.0f);
+    watermesh.Init();
     skydome.Init();
     cubemap.Init();
     tube.Init();
@@ -19,7 +19,7 @@ void Scene::Init()
 void Scene::DailyCycle(float time)
 {
 
-    float timeSpeed = time * 0.2f;
+    float timeSpeed = time * 0.02f;
     sun.direction.x = cos(timeSpeed);
     sun.direction.y = sin(timeSpeed);
     sun.direction.z = -0.5f;

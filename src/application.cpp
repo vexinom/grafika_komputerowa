@@ -149,6 +149,7 @@ void Application::drawFBO(float time)
     shaders["postprocess"]->SetFloat("fogDensity", scene.fogDensity);
     shaders["postprocess"]->SetVec2("sunScreenPos", sunScreen);
     shaders["postprocess"]->SetFloat("sunVisible", sunVisible);
+    shaders["postprocess"]->SetFloat("base_water_level", scene.watermesh.waterLevel);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, waterFrameBuffer.oceandepthColorBuffer);

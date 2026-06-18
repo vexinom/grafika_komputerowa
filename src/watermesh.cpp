@@ -1,10 +1,11 @@
 #include "watermesh.h"
 #include <iostream>
+#include "config.h"
 
-void WaterMesh::Init(float waterLevel, float maxWaveHeight)
+void WaterMesh::Init()
 {
-    this->waterLevel = waterLevel;
-    this->maxWaveHeight = maxWaveHeight;
+    this->waterLevel = config::WATERLEVEL;
+    this->maxWaveHeight = config::MAX_WAVE_HEIGHT;
 
     int chunkSize = 64; 
     int vertexCount = chunkSize + 1;
@@ -108,12 +109,13 @@ void WaterMesh::Draw(Shader& shader, const glm::mat4& view, const glm::mat4& pro
     shader.SetVec3("sunDirection", sunDirection);
     shader.SetVec3("viewPos", cameraPosition);
     shader.SetFloat("time", time);
+    shader.SetFloat("water_level", waterLevel);
 
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, heightmapTexture);
     shader.SetInt("heightmap", 3);
     shader.SetVec2("textureSize", glm::vec2(2048.0f, 2048.0f));
-    shader.SetVec3("terrainParams", glm::vec3(146.0f, 0.0f, 5.0f));
+    shader.SetVec3("terrainParams", glm::vec3(config::Y_SCALE_TERRAIN, 0.0f, 5.0f));
 
     glBindVertexArray(VAO);
 

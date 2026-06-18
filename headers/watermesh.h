@@ -22,12 +22,12 @@ class WaterMesh
     public:
         std::vector<WaterChunk> chunks;
 
-        void Init(float waterLevel, float maxWaveHeight);
+        void Init();
         void Draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection, const glm::vec3& cameraPosition, 
                     const glm::vec3& sunDirection, unsigned int heightmapTexture, float time);
 
 
-    private:
+
         unsigned int VAO,VBO, EBO;
         int indexCount;
 
