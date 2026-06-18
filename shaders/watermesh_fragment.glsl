@@ -51,12 +51,12 @@ void main()
     
     float shoreGradient = clamp(1.0 - (waterDepth / 15.0), 0.0, 1.0);
     
-    if (waterDepth > 0.0 && waterDepth < 15.0) 
+    /*if (waterDepth > 0.0 && waterDepth < 15.0) 
     {
         vec3 shoreColor = mix(vec3(0.5, 0.7, 1.0), vec3(1.0, 1.0, 1.0), 0.5);
         finalColor = mix(finalColor, shoreColor, shoreGradient * 0.5);
         waterBaseColor.a = mix(waterBaseColor.a, 0.9, shoreGradient);
-    }
+    }*/
 
     float distance = length(viewPos - FragPos);
     float fogMin = 800.0;  
