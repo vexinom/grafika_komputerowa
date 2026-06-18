@@ -47,8 +47,9 @@ bool Application::Init()
     glViewport(0, 0, width, height);
     glEnable(GL_DEPTH_TEST);
 
+    //Initialization of shaders
+
     shadersInit();
-    
 
     glDisable(GL_CULL_FACE);
 
@@ -114,61 +115,6 @@ void Application::ShadowPass()
     glViewport(0, 0, width, height);
 }
 
-bool Application::Init_Shadow()
-{
-    glGenFramebuffers(1, &shadowFBO);
-
-    glGenTextures(1, &shadowMap);
-    glBindTexture(GL_TEXTURE_2D, shadowMap);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_RESOLUTION, SHADOW_RESOLUTION, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    float border[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowMap, 0);
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
-
-    bool complete = glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    if (!complete)
-    {
-        fprintf(stderr, "Failed to complete shadow framebuffer\n");
-    }
-    return complete;
-}
-
-void Application::ShadowPass()
-{
-    glm::vec3 lightDir = glm::normalize(scene.sun.direction);
-    glm::vec3 center = scene.camera.Position;
-    glm::vec3 up = glm::abs(lightDir.y) > 0.99f ? glm::vec3(0.0f, 0.0f, 1.0f) : glm::vec3(0.0f, 1.0f, 0.0f);
-
-    glm::mat4 lightView = glm::lookAt(center + lightDir * 500.0f, center, up);
-    glm::mat4 lightProjection = glm::ortho(-400.0f, 400.0f, -400.0f, 400.0f, 1.0f, 1000.0f);
-    lightSpaceMatrix = lightProjection * lightView;
-
-    glViewport(0, 0, SHADOW_RESOLUTION, SHADOW_RESOLUTION);
-    glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
-    glClear(GL_DEPTH_BUFFER_BIT);
-    glEnable(GL_DEPTH_TEST);
-
-    shaders["depth"]->Use();
-    scene.worldmesh.DrawDepth(*shaders["depth"], lightSpaceMatrix);
-
-    shaders["depthobject"]->Use();
-    scene.monument.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
-    scene.axolotl.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
-    scene.reef.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, width, height);
-}
 
 void Application::drawFBO(float time)
 {
