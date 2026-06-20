@@ -63,4 +63,7 @@ class Application
         bool headlightKeyDown = false;
         bool pauseKeyDown = false;
         bool pokeMouseDown = false;
+
+        bool teleportKeyDown = false;
+        bool teleportToFish = false;   // false: nastepny H -> axolotl, true: nastepny H -> ryba
 };

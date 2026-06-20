@@ -181,6 +181,7 @@ void Application::Run()
         scene.DailyCycle(currentFrame);
 
         scene.axolotl.Update(deltaTime);
+        scene.fish.Update(deltaTime);
         scene.particles.Update(deltaTime, scene.camera.Position, currentFrame, scene.current);
 
         glm::vec3 headlightPos = scene.axolotl.HeadlightPosition();
@@ -216,6 +217,8 @@ void Application::Run()
 
         scene.axolotl.Draw(*shaders["axolotl"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap);
 
+        scene.fish.Draw(*shaders["fish"], view, projection, scene.sun.direction, scene.camera.Position);
+        
         if (useCubemap)
             scene.cubemap.Draw(*shaders["cubemap"], view, projection);
         else
@@ -227,10 +230,8 @@ void Application::Run()
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDepthMask(GL_FALSE);
 
-        // suspended particles (bubbles + marine snow), then the water surface
         scene.particles.Draw(*shaders["particle"], view, projection, (float)height);
 
-        // particles restore their own GL state, so re-assert transparency for the water
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDepthMask(GL_FALSE);
@@ -333,8 +334,25 @@ void Application::Input_Events()
 
     if(glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS)
     {
-        glm::vec3 target = scene.axolotl.NearestTo(scene.camera.Position);
-        scene.camera.LookAt(target + glm::vec3(24.0f, 28.0f, 24.0f), target);
+        if(!teleportKeyDown)
+        {
+            if(!teleportToFish)
+            {
+                glm::vec3 target = scene.axolotl.NearestTo(scene.camera.Position);
+                scene.camera.LookAt(target + glm::vec3(24.0f, 28.0f, 24.0f), target);
+            }
+            else
+            {
+                glm::vec3 target = scene.fish.Position();
+                scene.camera.LookAt(target + glm::vec3(45.0f, 25.0f, 45.0f), target);
+            }
+            teleportToFish = !teleportToFish;
+            teleportKeyDown = true;
+        }
+    }
+    else
+    {
+        teleportKeyDown = false;
     }
 
     // ---- Interaction 1: submarine / creature headlight on-off (L) ----
@@ -435,6 +453,7 @@ void Application::shadersInit()
     shaders["object"] = new Shader("shaders/object_vertex.glsl", "shaders/object_fragment.glsl");
     shaders["depthobject"] = new Shader("shaders/depth_object_vertex.glsl", "shaders/depth_fragment.glsl");
     shaders["axolotl"] = new Shader("shaders/axolotl_vertex.glsl", "shaders/axolotl_fragment.glsl");
+    shaders["fish"] = new Shader("shaders/fish_vertex.glsl","shaders/fish_fragment.glsl");
     shaders["reef"] = new Shader("shaders/reef_vertex.glsl", "shaders/reef_fragment.glsl");
     shaders["seaweed"] = new Shader("shaders/seaweed_vertex.glsl", "shaders/seaweed_fragment.glsl");
     shaders["particle"] = new Shader("shaders/particle_vertex.glsl", "shaders/particle_fragment.glsl");

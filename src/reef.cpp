@@ -271,6 +271,18 @@ void Reef::Init()
         return hh;
     };
 
+    auto realFloor = [&](float x, float z) -> float
+    {
+        float s = 0.0f;
+        if (hm)
+        {
+            int xi = (int)glm::clamp(x, 0.0f, (float)w - 1.0f);
+            int zi = (int)glm::clamp(z, 0.0f, (float)h - 1.0f);
+            s = hm[zi * w + xi] / 255.0f;
+        }
+        return s * 500.0f;
+    };
+
     int weight[NUM_CAT] = { 0 };
     weight[ROCK] = 10; weight[CORAL_TABLE] = 16; weight[CORAL_PLATE] = 8;
     weight[CORAL_WHIP] = 18; weight[FEATHER] = 6; weight[URCHIN] = 14; weight[SHELL] = 34;
@@ -332,9 +344,12 @@ void Reef::Init()
         float size; sizeFor(cat, size);
         float rot = frand(0.0f, 6.2831f);
 
+        float ry = realFloor(x, z);
+        if (ry > 395.0f) continue;          // nie stawiaj korali nad powierzchnia wody
+
         Instance inst;
         inst.mesh = mi;
-        inst.pos = glm::vec3(x, floorY - 0.5f, z);
+        inst.pos = glm::vec3(x, ry - 0.5f, z);
         inst.tint = glm::vec3(frand(0.86f, 1.14f));
         inst.rough = 1.0f; inst.metal = 0.0f;
 

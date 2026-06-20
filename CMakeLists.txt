@@ -30,6 +30,7 @@ find_package(OpenGL REQUIRED)
 
 add_executable(computer_graphics
     src/main.cpp
+    src/objloader.cpp
     src/application.cpp
     src/camera.cpp
     src/scene.cpp
@@ -41,6 +42,7 @@ add_executable(computer_graphics
     src/tube.cpp
     src/monument.cpp
     src/axolotl.cpp
+    src/fish.cpp
     src/reef.cpp
     src/seaweed.cpp
     src/particles.cpp

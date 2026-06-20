@@ -14,25 +14,13 @@ void Seaweed::Init()
     stbi_set_flip_vertically_on_load(true);
     int w = 0, h = 0, n = 0;
     unsigned char* hm = stbi_load("assets/worldmap.png", &w, &h, &n, 1);
-    const float DEEP = -700.0f, SHELF = 30.0f, ISLAND = 320.0f;   // must match worldmesh_vertex.glsl
 
-    // radial seabed height -- must match worldmesh_vertex.glsl terrainHeight()
     auto seabed = [&](float x, float z) -> float
     {
-        float fw = w ? (float)w : 2048.0f, fh = h ? (float)h : 2048.0f;
-        float u = x / fw, v = z / fh;
-        float s = 0.5f;
+        float fw = w ? (float)w : 4096.0f, fh = h ? (float)h : 4096.0f;
+        float s = 0.0f;
         if (hm) { int xi = (int)glm::clamp(x, 0.0f, fw - 1.0f); int zi = (int)glm::clamp(z, 0.0f, fh - 1.0f); s = hm[zi * w + xi] / 255.0f; }
-        float rn = glm::length(glm::vec2(u - 0.5f, v - 0.5f)) * 2.0f;
-        float slope = glm::smoothstep(0.40f, 0.72f, rn);
-        float base = glm::mix(DEEP, SHELF, slope);
-        float isl = glm::smoothstep(0.90f, 1.30f, rn);
-        base = glm::mix(base, ISLAND, isl);
-        float deepAmt = 1.0f - slope;
-        float amt = 18.0f + 160.0f * deepAmt + 190.0f * isl;
-        float hh = base + (s - 0.5f) * 2.0f * amt;
-        hh -= isl * (1.0f - s) * 240.0f;
-        return hh;
+        return s * 500.0f;
     };
 
     float mapW = (float)(w ? w : 2048), mapH = (float)(h ? h : 2048);

@@ -7,6 +7,7 @@
 #include "tube.h"
 #include "monument.h"
 #include "axolotl.h"
+#include "fish.h"
 #include "reef.h"
 #include "seaweed.h"
 #include "particles.h"
@@ -31,6 +32,7 @@ class Scene
         Tube tube;
         Monument monument;
         Axolotl axolotl;
+        Fish fish;
         Reef reef;
         Seaweed seaweed;
         Particles particles;

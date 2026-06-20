@@ -1,0 +1,239 @@
+#include "fish.h"
+#include "objloader.h"
+#include <glad/glad.h>
+#include <glm/gtc/matrix_transform.hpp>
+#include "stb_image.h"            // tylko deklaracje - implementacja jest w worldmesh.cpp
+#include <cstdlib>
+#include <cmath>
+
+// ----- pomocnicze losowanie -----
+static float frand() { return (float)rand() / (float)RAND_MAX; }
+static float frand(float a, float b) { return a + (b - a) * frand(); }
+static glm::vec3 randUnit()
+{
+    float z = frand(-1.0f, 1.0f);
+    float t = frand(0.0f, 6.2831853f);
+    float r = sqrtf(glm::max(0.0f, 1.0f - z * z));
+    return glm::vec3(r * cosf(t), r * sinf(t), z);
+}
+static glm::vec3 limit(const glm::vec3& v, float maxLen)
+{
+    float l = glm::length(v);
+    return (l > maxLen && l > 1e-5f) ? v * (maxLen / l) : v;
+}
+
+static const int   SCHOOLS    = 4;        // liczba lawic
+static const int   PER_SCHOOL = 60;       // ryb na lawice  (4*60 = 240 ryb)
+static const float WATER_LEVEL = 400.0f;  // poziom powierzchni wody (config::WATERLEVEL)
+static const float Y_SCALE     = 500.0f;  // config::Y_SCALE_TERRAIN
+
+float Fish::SeabedHeight(float x, float z) const
+{
+    float fw = hmW ? (float)hmW : 4096.0f, fh = hmH ? (float)hmH : 4096.0f;
+    float s = 0.0f;
+    if (heightData)
+    {
+        int xi = (int)glm::clamp(x, 0.0f, fw - 1.0f);
+        int zi = (int)glm::clamp(z, 0.0f, fh - 1.0f);
+        s = heightData[zi * hmW + xi] / 65535.0f;
+    }
+    return s * Y_SCALE;
+}
+
+void Fish::Init()
+{
+    ObjMesh m;
+    if (!LoadObj("assets/models/fish/obj/fish.obj", m))
+        return;
+    indexCount  = (int)m.indices.size();
+    modelCenter = m.center;
+    fishScale   = 40.0f * m.invExtent;
+
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+    glGenBuffers(1, &instanceVBO);
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, m.interleaved.size() * sizeof(float), m.interleaved.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, m.indices.size() * sizeof(unsigned int), m.indices.data(), GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0); glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1); glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(2); glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+
+    const int total = SCHOOLS * PER_SCHOOL;
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    glBufferData(GL_ARRAY_BUFFER, total * sizeof(glm::mat4), nullptr, GL_DYNAMIC_DRAW);
+    for (int i = 0; i < 4; i++)
+    {
+        glEnableVertexAttribArray(3 + i);
+        glVertexAttribPointer(3 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(i * sizeof(glm::vec4)));
+        glVertexAttribDivisor(3 + i, 1);
+    }
+    glBindVertexArray(0);
+
+    albedoTex = LoadTexture("assets/models/fish/Texture/fish.png");
+
+    int n = 0;
+    stbi_set_flip_vertically_on_load(true);
+    heightData = stbi_load_16("assets/worldmap.png", &hmW, &hmH, &n, 1);
+
+    glm::vec2 spots[SCHOOLS] = {
+        glm::vec2(1000.0f, 1950.0f),
+        glm::vec2( 700.0f, 1650.0f),
+        glm::vec2( 400.0f, 1950.0f),
+        glm::vec2(1300.0f, 2100.0f),
+    };
+    schoolCenters.clear();
+    for (int s = 0; s < SCHOOLS; s++)
+    {
+        float fy = SeabedHeight(spots[s].x, spots[s].y);   // realne dno
+        float cy = glm::clamp(fy + 45.0f, fy + 20.0f, WATER_LEVEL - 30.0f);
+        schoolCenters.push_back(glm::vec3(spots[s].x, cy, spots[s].y));
+    }
+
+    srand(2024);
+    boids.resize(total);
+    models.resize(total);
+    for (int s = 0; s < SCHOOLS; s++)
+        for (int k = 0; k < PER_SCHOOL; k++)
+        {
+            Boid& b = boids[s * PER_SCHOOL + k];
+            b.pos = schoolCenters[s] + randUnit() * frand(0.0f, schoolRadius);
+            b.vel = randUnit() * frand(18.0f, 30.0f);
+        }
+}
+
+void Fish::Update(float dt)
+{
+    if (boids.empty()) return;
+    if (dt > 0.05f) dt = 0.05f;
+    animTime += dt;
+
+    const float perceptionR = 130.0f;
+    const float sepR        = 60.0f;
+    const float maxSpeed    = 50.0f;
+    const float minSpeed    = 22.0f;
+    const float maxForce    = 65.0f;
+
+    for (int s = 0; s < (int)schoolCenters.size(); s++)
+    {
+        int base = s * PER_SCHOOL;
+        glm::vec3 center = schoolCenters[s];
+
+        for (int i = base; i < base + PER_SCHOOL; i++)
+        {
+            glm::vec3 pi = boids[i].pos;
+            glm::vec3 vi = boids[i].vel;
+
+            glm::vec3 sep(0.0f), ali(0.0f), coh(0.0f);
+            int na = 0, ns = 0;
+
+            for (int j = base; j < base + PER_SCHOOL; j++)
+            {
+                if (i == j) continue;
+                glm::vec3 d = pi - boids[j].pos;
+                float dist = glm::length(d);
+                if (dist < perceptionR && dist > 1e-4f)
+                {
+                    ali += boids[j].vel;
+                    coh += boids[j].pos;
+                    na++;
+                    if (dist < sepR) { sep += (d / dist) / dist; ns++; }
+                }
+            }
+
+            glm::vec3 acc(0.0f);
+            if (ns > 0)
+            {
+                sep /= (float)ns;
+                acc += limit(glm::normalize(sep) * maxSpeed - vi, maxForce) * 1.7f;
+            }
+            if (na > 0)
+            {
+                ali /= (float)na;
+                acc += limit(glm::normalize(ali) * maxSpeed - vi, maxForce) * 1.0f;
+                coh = coh / (float)na - pi;
+                if (glm::length(coh) > 1e-4f)
+                    acc += limit(glm::normalize(coh) * maxSpeed - vi, maxForce) * 0.9f;
+            }
+
+            glm::vec3 toC = center - pi;
+            float dc = glm::length(toC);
+            if (dc > schoolRadius && dc > 1e-4f)
+                acc += limit(glm::normalize(toC) * maxSpeed - vi, maxForce) * 1.5f;
+
+            float floorY = SeabedHeight(pi.x, pi.z);
+            float lowY   = floorY + 18.0f;             // pas nad piaskiem
+            float highY  = floorY + 130.0f;            // sufit lawicy nad dnem
+            if (highY > WATER_LEVEL - 10.0f) highY = WATER_LEVEL - 10.0f;
+            if (highY < lowY + 8.0f)         highY = lowY + 8.0f;
+            if (pi.y < lowY)  acc += glm::vec3(0,  1, 0) * maxForce * 2.5f;
+            if (pi.y > highY) acc += glm::vec3(0, -1, 0) * maxForce * 2.5f;
+
+            vi += acc * dt;
+            float sp = glm::length(vi);
+            if (sp > maxSpeed)                     vi *= maxSpeed / sp;
+            else if (sp < minSpeed && sp > 1e-4f)  vi *= minSpeed / sp;
+
+            glm::vec3 np = pi + vi * dt;
+
+            float fY = SeabedHeight(np.x, np.z);
+            float hardLow  = fY + 8.0f;
+            float hardHigh = fY + 160.0f;
+            if (hardHigh > WATER_LEVEL - 5.0f) hardHigh = WATER_LEVEL - 5.0f;
+            if (hardHigh < hardLow + 5.0f)     hardHigh = hardLow + 5.0f;
+            if (np.y < hardLow)  { np.y = hardLow;  if (vi.y < 0) vi.y = 0; }
+            if (np.y > hardHigh) { np.y = hardHigh; if (vi.y > 0) vi.y = 0; }
+
+            boids[i].vel = vi;
+            boids[i].pos = np;
+        }
+    }
+
+    for (size_t i = 0; i < boids.size(); i++)
+    {
+        glm::vec3 f = glm::normalize(boids[i].vel);
+        glm::vec3 right = glm::cross(glm::vec3(0, 1, 0), f);
+        float rl = glm::length(right);
+        right = (rl > 1e-4f) ? right / rl : glm::vec3(1, 0, 0);
+        glm::vec3 up = glm::cross(f, right);
+
+        glm::mat4 rot(1.0f);
+        rot[0] = glm::vec4(right, 0.0f);
+        rot[1] = glm::vec4(up,    0.0f);
+        rot[2] = glm::vec4(f,     0.0f);
+        // jesli ryba plynie ogonem do przodu: rot = rot * glm::rotate(mat4(1), radians(180.f), vec3(0,1,0));
+
+        glm::mat4 M = glm::translate(glm::mat4(1.0f), boids[i].pos) * rot;
+        M = glm::scale(M, glm::vec3(fishScale));
+        M = glm::translate(M, -modelCenter);
+        models[i] = M;
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, models.size() * sizeof(glm::mat4), models.data());
+}
+
+void Fish::Draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection,
+                const glm::vec3& sunDirection, const glm::vec3& cameraPos)
+{
+    if (indexCount == 0 || boids.empty()) return;
+
+    shader.Use();
+    shader.SetMat4("view", view);
+    shader.SetMat4("projection", projection);
+    shader.SetVec3("sunDirection", sunDirection);
+    shader.SetVec3("tint", glm::vec3(1.0f));
+    shader.SetFloat("time", animTime);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, albedoTex);
+    shader.SetInt("albedo", 0);
+
+    glBindVertexArray(VAO);
+    glDrawElementsInstanced(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0, (GLsizei)boids.size());
+    glBindVertexArray(0);
+}
