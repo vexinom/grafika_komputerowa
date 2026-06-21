@@ -81,10 +81,10 @@ void Fish::Init()
     heightData = stbi_load_16("assets/worldmap.png", &hmW, &hmH, &n, 1);
 
     glm::vec2 spots[SCHOOLS] = {
-        glm::vec2(1000.0f, 1950.0f),
-        glm::vec2( 700.0f, 1650.0f),
-        glm::vec2( 400.0f, 1950.0f),
-        glm::vec2(1300.0f, 2100.0f),
+        glm::vec2(1260.0f, 1100.0f),
+        glm::vec2(2020.0f,  540.0f),
+        glm::vec2(3380.0f, 1520.0f),
+        glm::vec2(2280.0f, 2880.0f),
     };
     schoolCenters.clear();
     for (int s = 0; s < SCHOOLS; s++)
@@ -106,7 +106,7 @@ void Fish::Init()
         }
 }
 
-void Fish::Update(float dt)
+void Fish::Update(float dt, const glm::vec3& cameraPos)
 {
     if (boids.empty()) return;
     if (dt > 0.05f) dt = 0.05f;
@@ -117,6 +117,7 @@ void Fish::Update(float dt)
     const float maxSpeed    = 50.0f;
     const float minSpeed    = 22.0f;
     const float maxForce    = 65.0f;
+    const float avoidRadius = 120.0f;
 
     for (int s = 0; s < (int)schoolCenters.size(); s++)
     {
@@ -165,6 +166,11 @@ void Fish::Update(float dt)
             if (dc > schoolRadius && dc > 1e-4f)
                 acc += limit(glm::normalize(toC) * maxSpeed - vi, maxForce) * 1.5f;
 
+            glm::vec3 away = pi - cameraPos;
+            float cd = glm::length(away);
+            if (cd < avoidRadius && cd > 1e-4f)
+                acc += (away / cd) * maxForce * (3.0f + 6.0f * (1.0f - cd / avoidRadius));
+
             float floorY = SeabedHeight(pi.x, pi.z);
             float lowY   = floorY + 18.0f;             // pas nad piaskiem
             float highY  = floorY + 130.0f;            // sufit lawicy nad dnem
@@ -179,6 +185,16 @@ void Fish::Update(float dt)
             else if (sp < minSpeed && sp > 1e-4f)  vi *= minSpeed / sp;
 
             glm::vec3 np = pi + vi * dt;
+
+            glm::vec3 aw = np - cameraPos;
+            float ad = glm::length(aw);
+            if (ad < avoidRadius && ad > 1e-4f)
+            {
+                glm::vec3 nrm = aw / ad;
+                np = cameraPos + nrm * avoidRadius;
+                float vn = glm::dot(vi, nrm);
+                if (vn < 0.0f) vi -= nrm * vn;
+            }
 
             float fY = SeabedHeight(np.x, np.z);
             float hardLow  = fY + 8.0f;

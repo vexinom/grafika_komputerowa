@@ -181,7 +181,7 @@ void Application::Run()
         scene.DailyCycle(currentFrame);
 
         scene.axolotl.Update(deltaTime);
-        scene.fish.Update(deltaTime);
+        scene.fish.Update(deltaTime, scene.camera.Position);
         scene.particles.Update(deltaTime, scene.camera.Position, currentFrame, scene.current);
 
         glm::vec3 headlightPos = scene.axolotl.HeadlightPosition();

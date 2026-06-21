@@ -6,7 +6,7 @@
 class Fish {
 public:
     void Init();
-    void Update(float dt);
+    void Update(float dt, const glm::vec3& cameraPos);
     void Draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection,
               const glm::vec3& sunDirection, const glm::vec3& cameraPos);
 
