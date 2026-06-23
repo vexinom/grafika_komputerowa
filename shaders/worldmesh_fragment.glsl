@@ -13,6 +13,7 @@ uniform sampler2D sandNormal;
 uniform sampler2D grassNormal;
 uniform sampler2D shadowMap;
 
+
 uniform vec3 sunDirection;
 uniform vec3 sunColor;
 uniform vec3 cameraPos;
@@ -20,6 +21,7 @@ uniform float metallic;
 uniform float roughness;
 uniform vec3 headlightPos;
 uniform vec3 headlightColor;
+uniform float water_level;
 
 const float PI = 3.14159265359;
 
@@ -54,38 +56,66 @@ vec3 FresnelSchlick(float cosTheta, vec3 F0)
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
-float ShadowFactor(float NdotL)
+float ShadowFactor(float NdotL, vec3 fragPos, vec3 viewPos)
 {
+    // 1. Sprawdzenie odległości od kamery (1500.0 jednostek)
+    float distance = length(viewPos - fragPos);
+    if (distance > 1500.0) return 1.0; // Poza zasięgiem - brak cienia
+
+    // 2. Konwersja do przestrzeni tekstury
     vec3 proj = FragPosLightSpace.xyz / FragPosLightSpace.w * 0.5 + 0.5;
-    if (proj.z > 1.0) return 0.0;
+    
+    // Jeśli poza zasięgiem Z, nie ma cienia
+    if (proj.z < 0.0 || proj.z > 1.0) return 1.0;
 
     float bias = max(0.0025 * (1.0 - NdotL), 0.0008);
     vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
 
     float shadow = 0.0;
     for (int x = -1; x <= 1; ++x)
+    {
         for (int y = -1; y <= 1; ++y)
-            shadow += proj.z - bias > texture(shadowMap, proj.xy + vec2(x, y) * texelSize).r ? 1.0 : 0.0;
+        {
+            float pcfDepth = texture(shadowMap, proj.xy + vec2(x, y) * texelSize).r;
+            shadow += (proj.z - bias > pcfDepth) ? 1.0 : 0.0;
+        }
+    }
+    shadow /= 9.0;
 
-    return shadow / 9.0;
+    // 3. Płynne wygaszanie poza mapą cieni
+    if (proj.x < 0.0 || proj.x > 1.0 || proj.y < 0.0 || proj.y > 1.0) return 1.0; 
+
+    return 1.0 - shadow;
 }
 
 void main()
 {
-    // substrate by depth: dark rock/mud in the deep, bright sand on the shelf,
-    // green vegetation on the island/peninsula tops above water
+    
     vec3 sandCol  = texture(sandTexture, TexCoord).rgb;
     vec3 grassCol = texture(grassTexture, TexCoord).rgb;
     vec3 deepCol  = mix(sandCol, vec3(0.10, 0.13, 0.12), 0.7) * 0.65;
 
-    float toSand  = smoothstep(-70.0, 0.0, Height);
-    float toGrass = smoothstep(95.0, 125.0, Height);
+   
+    float sandStart = water_level - 5.0; 
+    float sandEnd   = water_level + 5.0; 
+    
+   
+    float grassStart = sandEnd;
+    float grassEnd   = sandEnd + 20.0; 
+
+    
+    float toSand  = smoothstep(sandStart, sandEnd, Height);
+    float toGrass = smoothstep(grassStart, grassEnd, Height);
     vec3 albedo = mix(deepCol, sandCol, toSand);
     albedo = mix(albedo, grassCol, toGrass);
 
     // procedural grain so the ground doesn't look like a blurry flat sheet
+    
+
     float grain = 0.6 * fbm2(WorldPos.xz * 0.5) + 0.4 * fbm2(WorldPos.xz * 4.0);
     albedo *= (0.82 + 0.36 * grain);
+
+    
 
     vec3 tangentNormal = mix(texture(sandNormal, TexCoord).xyz, texture(grassNormal, TexCoord).xyz, toGrass) * 2.0 - 1.0;
     vec3 N = normalize(TBN * tangentNormal);
@@ -114,8 +144,11 @@ void main()
     vec3 toHeadlight = headlightPos - WorldPos;
     float hd = length(toHeadlight);
     float hatt = 1.0 / (1.0 + 0.0006 * hd * hd);
-    color += albedo * headlightColor * max(dot(N, toHeadlight / hd), 0.0) * hatt;
-
+    if (Height < water_level)
+    {
+        color += albedo * headlightColor * max(dot(N, toHeadlight / hd), 0.0) * hatt;
+    }
+    
     color = color / (color + vec3(1.0));
     color = pow(color, vec3(1.0 / 2.2));
 

@@ -12,32 +12,24 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 uniform mat4 lightSpaceMatrix;
-
 uniform sampler2D heightmap;
 uniform vec2 chunkOffset;
 uniform vec2 textureSize;
 uniform vec3 terrainParams;
 uniform float textureTileSize;
 
-float terrainHeight(vec2 g)
-{
-    vec2 uv = g / textureSize;
-    float s = texture(heightmap, uv).r;
-    return (s * terrainParams.x) + terrainParams.y;
+float terrainHeight(vec2 g) {
+    return (texture(heightmap, g / textureSize).r * terrainParams.x) + terrainParams.y;
 }
 
-void main()
-{
-    float skirtDepth = terrainParams.z;
+void main() {
     vec2 globalXZ = chunkOffset + aLocalPos;
     TexCoord = globalXZ / textureTileSize;
-
     float worldY = terrainHeight(globalXZ);
-    if (aIsSkirt > 0.5) worldY -= max(skirtDepth, 30.0);
+    if (aIsSkirt > 0.5) worldY -= max(terrainParams.z, 30.0);
 
     Height = worldY;
-    vec3 worldPos = vec3(globalXZ.x, worldY, globalXZ.y);
-    WorldPos = worldPos;
+    WorldPos = vec3(globalXZ.x, worldY, globalXZ.y);
 
     float eps = 2.0;
     float hL = terrainHeight(globalXZ + vec2(-eps, 0.0));
@@ -48,6 +40,6 @@ void main()
     vec3 T = normalize(vec3(1.0, 0.0, 0.0) - N * N.x);
     TBN = mat3(T, cross(N, T), N);
 
-    FragPosLightSpace = lightSpaceMatrix * vec4(worldPos, 1.0);
-    gl_Position = projection * view * model * vec4(worldPos, 1.0);
+    FragPosLightSpace = lightSpaceMatrix * vec4(WorldPos, 1.0);
+    gl_Position = projection * view * model * vec4(WorldPos, 1.0);
 }

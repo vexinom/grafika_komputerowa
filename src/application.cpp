@@ -104,7 +104,7 @@ void Application::ShadowPass()
     glEnable(GL_DEPTH_TEST);
 
     shaders["depth"]->Use();
-    scene.worldmesh.DrawDepth(*shaders["depth"], lightSpaceMatrix);
+    scene.worldmesh.DrawDepth(*shaders["depth"], lightSpaceMatrix, scene.camera.Position);
 
     shaders["depthobject"]->Use();
     scene.monument.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);

@@ -318,6 +318,7 @@ void WorldMesh::Draw(Shader& shader, const glm::mat4 & view, glm::mat4 & project
     shader.SetFloat("roughness", roughness);
     shader.SetVec3("headlightPos", headlightPos);
     shader.SetVec3("headlightColor", headlightColor);
+    shader.SetFloat("water_level", config::WATERLEVEL);
 
 
     for(size_t i = 0; i < chunks.size(); i++)
@@ -350,7 +351,7 @@ void WorldMesh::Draw(Shader& shader, const glm::mat4 & view, glm::mat4 & project
     glBindVertexArray(0);
 }
 
-void WorldMesh::DrawDepth(Shader& shader, const glm::mat4& lightSpaceMatrix)
+void WorldMesh::DrawDepth(Shader& shader, const glm::mat4& lightSpaceMatrix, const glm::vec3& cameraPosition)
 {
     std::vector<Plane> lightPlanes = GetFrustumPlanes(lightSpaceMatrix);
 
@@ -366,7 +367,6 @@ void WorldMesh::DrawDepth(Shader& shader, const glm::mat4& lightSpaceMatrix)
     glBindTexture(GL_TEXTURE_2D, heightmapTexture);
     shader.SetInt("heightmap", 0);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, globalEBO[0]);
 
     for (size_t i = 0; i < chunks.size(); i++)
     {
@@ -375,8 +375,22 @@ void WorldMesh::DrawDepth(Shader& shader, const glm::mat4& lightSpaceMatrix)
             continue;
         }
 
+        glm::vec3 chunkCenter = (chunks[i].minBoundBox + chunks[i].maxBoundBox) * 0.5f;
+        float distance = glm::distance(cameraPosition, chunkCenter);
+
+        int lod = 0;
+        if(distance > 600.0f)
+        {
+            lod = 2;
+        }
+        else if(distance > 250.0f)
+        {
+            lod = 1;
+        }
+
         shader.SetVec2("chunkOffset", glm::vec2((float)chunks[i].x, (float)chunks[i].z));
-        glDrawElements(GL_TRIANGLE_STRIP, globalindexCount[0], GL_UNSIGNED_INT, (void*)0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, globalEBO[lod]);
+        glDrawElements(GL_TRIANGLE_STRIP, globalindexCount[lod], GL_UNSIGNED_INT, (void*)0);
     }
 
     glDisable(GL_PRIMITIVE_RESTART);
