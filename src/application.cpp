@@ -95,7 +95,8 @@ void Application::ShadowPass()
     glm::vec3 center = scene.camera.Position;
     glm::vec3 up = glm::abs(lightDir.y) > 0.99f ? glm::vec3(0.0f, 0.0f, 1.0f) : glm::vec3(0.0f, 1.0f, 0.0f);
 
-    glm::mat4 lightView = glm::lookAt(center + lightDir * 0.1f, center, up);
+    //works 
+    glm::mat4 lightView = glm::lookAt(center + lightDir * 10000.1f, center, up);
 
     float orthoSize = 2000.0f; 
     glm::mat4 lightProjection = glm::ortho(-orthoSize, orthoSize, -orthoSize, orthoSize, 1.0f, 4000.0f);
