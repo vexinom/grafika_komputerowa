@@ -1,5 +1,6 @@
 #include "application.h"
 #include "skydome.h"
+#include "config.h"
 
 #include <iostream>
 #include <glm/gtc/type_ptr.hpp>
@@ -94,8 +95,11 @@ void Application::ShadowPass()
     glm::vec3 center = scene.camera.Position;
     glm::vec3 up = glm::abs(lightDir.y) > 0.99f ? glm::vec3(0.0f, 0.0f, 1.0f) : glm::vec3(0.0f, 1.0f, 0.0f);
 
-    glm::mat4 lightView = glm::lookAt(center + lightDir * 500.0f, center, up);
-    glm::mat4 lightProjection = glm::ortho(-400.0f, 400.0f, -400.0f, 400.0f, 1.0f, 1000.0f);
+    glm::mat4 lightView = glm::lookAt(center + lightDir * 0.1f, center, up);
+
+    float orthoSize = 2000.0f; 
+    glm::mat4 lightProjection = glm::ortho(-orthoSize, orthoSize, -orthoSize, orthoSize, 1.0f, 4000.0f);
+    
     lightSpaceMatrix = lightProjection * lightView;
 
     glViewport(0, 0, SHADOW_RESOLUTION, SHADOW_RESOLUTION);

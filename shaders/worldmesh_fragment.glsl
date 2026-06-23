@@ -13,7 +13,6 @@ uniform sampler2D sandNormal;
 uniform sampler2D grassNormal;
 uniform sampler2D shadowMap;
 
-
 uniform vec3 sunDirection;
 uniform vec3 sunColor;
 uniform vec3 cameraPos;
@@ -25,7 +24,6 @@ uniform float water_level;
 
 const float PI = 3.14159265359;
 
-// procedural detail to break up the low-res tiled ground texture
 float h2(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
 float vn2(vec2 p){
     vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -56,19 +54,14 @@ vec3 FresnelSchlick(float cosTheta, vec3 F0)
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
-float ShadowFactor(float NdotL, vec3 fragPos, vec3 viewPos)
+float ShadowFactor(float NdotL)
 {
-    // 1. Sprawdzenie odległości od kamery (1500.0 jednostek)
-    float distance = length(viewPos - fragPos);
-    if (distance > 1500.0) return 1.0; // Poza zasięgiem - brak cienia
-
-    // 2. Konwersja do przestrzeni tekstury
     vec3 proj = FragPosLightSpace.xyz / FragPosLightSpace.w * 0.5 + 0.5;
-    
-    // Jeśli poza zasięgiem Z, nie ma cienia
-    if (proj.z < 0.0 || proj.z > 1.0) return 1.0;
 
-    float bias = max(0.0025 * (1.0 - NdotL), 0.0008);
+    if (proj.x < 0.0 || proj.x > 1.0 || proj.y < 0.0 || proj.y > 1.0 || proj.z > 1.0)
+        return 0.0;
+
+    float bias = max(0.005 * (1.0 - NdotL), 0.0005); 
     vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
 
     float shadow = 0.0;
@@ -80,42 +73,28 @@ float ShadowFactor(float NdotL, vec3 fragPos, vec3 viewPos)
             shadow += (proj.z - bias > pcfDepth) ? 1.0 : 0.0;
         }
     }
-    shadow /= 9.0;
-
-    // 3. Płynne wygaszanie poza mapą cieni
-    if (proj.x < 0.0 || proj.x > 1.0 || proj.y < 0.0 || proj.y > 1.0) return 1.0; 
-
-    return 1.0 - shadow;
+    return shadow / 9.0;
 }
 
 void main()
 {
-    
     vec3 sandCol  = texture(sandTexture, TexCoord).rgb;
     vec3 grassCol = texture(grassTexture, TexCoord).rgb;
     vec3 deepCol  = mix(sandCol, vec3(0.10, 0.13, 0.12), 0.7) * 0.65;
 
-   
     float sandStart = water_level - 5.0; 
     float sandEnd   = water_level + 5.0; 
     
-   
     float grassStart = sandEnd;
     float grassEnd   = sandEnd + 20.0; 
 
-    
     float toSand  = smoothstep(sandStart, sandEnd, Height);
     float toGrass = smoothstep(grassStart, grassEnd, Height);
     vec3 albedo = mix(deepCol, sandCol, toSand);
     albedo = mix(albedo, grassCol, toGrass);
 
-    // procedural grain so the ground doesn't look like a blurry flat sheet
-    
-
     float grain = 0.6 * fbm2(WorldPos.xz * 0.5) + 0.4 * fbm2(WorldPos.xz * 4.0);
     albedo *= (0.82 + 0.36 * grain);
-
-    
 
     vec3 tangentNormal = mix(texture(sandNormal, TexCoord).xyz, texture(grassNormal, TexCoord).xyz, toGrass) * 2.0 - 1.0;
     vec3 N = normalize(TBN * tangentNormal);
@@ -137,7 +116,11 @@ void main()
 
     float shadow = ShadowFactor(NdotL);
     vec3 direct = (kd * albedo / PI + specular) * radiance * NdotL * (1.0 - shadow);
-    vec3 ambient = albedo * mix(vec3(0.10), vec3(0.32), sunIntensity);
+
+    vec3 ambientDay = vec3(0.3, 0.3, 0.3);
+    vec3 ambientNight = vec3(0.15, 0.15, 0.25);
+    vec3 ambientColor = mix(ambientNight, ambientDay, sunIntensity);
+    vec3 ambient = albedo * ambientColor;
 
     vec3 color = ambient + direct;
 

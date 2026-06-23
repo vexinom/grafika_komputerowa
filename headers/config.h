@@ -8,4 +8,5 @@ namespace config
     const float Y_SCALE_TERRAIN = 500.0f;
     const float WATERLEVEL = 400.0f;
     const float MAX_WAVE_HEIGHT = 420.0f;
+    const float FAR_PLANE = 4000.0f;
 }
