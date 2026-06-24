@@ -35,7 +35,8 @@ public:
 class WorldMesh
 {
     public:
-        void Draw(Shader& shader, const glm::mat4 & view, glm::mat4 & projection, const glm::vec3& cameraPosition, const glm::vec3& sunDirection, const glm::mat4& lightSpaceMatrix, unsigned int shadowMap);
+        void Draw(Shader& shader, const glm::mat4 & view, glm::mat4 & projection, const glm::vec3& cameraPosition, 
+                const glm::vec3& sunDirection, const glm::mat4& lightSpaceMatrix, unsigned int shadowMap, glm::vec4 & clipPlane);
         void DrawDepth(Shader& shader, const glm::mat4& lightSpaceMatrix, const glm::vec3& cameraPosition);
         void Init();
 

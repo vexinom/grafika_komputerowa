@@ -208,15 +208,18 @@ void Application::Run()
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+        glm::vec4 fakeClipPlane(0.0f, -1.0f, 0.0f, 100000.0f);
         shaders["worldmesh"]->Use();
+        shaders["worldmesh"]->SetVec4("clipPlane", fakeClipPlane);
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);
 
         
 
-        scene.worldmesh.Draw(*shaders["worldmesh"], view, projection, scene.camera.Position, scene.sun.direction, lightSpaceMatrix, shadowMap);
+        scene.worldmesh.Draw(*shaders["worldmesh"], view, projection, scene.camera.Position, scene.sun.direction, 
+            lightSpaceMatrix, shadowMap, fakeClipPlane);
 
-        drawUnderwaterObjects(view, projection);
+        drawUnderwaterObjects(view, projection, fakeClipPlane);
         scene.tube.Draw(*shaders["tube"], view, projection, scene.sun.direction, scene.camera.Position);
 
         scene.monument.Draw(*shaders["object"], view, projection, scene.sun.direction, scene.camera.Position);
@@ -475,6 +478,9 @@ void Application::drawRefRefl()
     glm::mat4 projection = scene.camera.GetProjectionMatrix();
     float waterHeight = scene.watermesh.waterLevel;
 
+    // Enabling the clip space
+    glEnable(GL_CLIP_DISTANCE0);
+
     glBindFramebuffer(GL_FRAMEBUFFER, waterFrameBuffer.reflectionFrameBuffer);
     glViewport(0, 0, waterFrameBuffer.REFLECTION_WIDTH, waterFrameBuffer.REFLECTION_HEIGHT);
     glClearColor(1.0f, 0.0f, 0.0f, 1.0f); 
@@ -483,15 +489,16 @@ void Application::drawRefRefl()
 
     float distance = 2.0f * (scene.camera.Position.y - waterHeight);
     scene.camera.Position.y -= distance;
-
     scene.camera.InvertPitch();
 
     glm::mat4 reflectView = scene.camera.GetViewMatrix();
     glm::mat4 reflectViewProj = projection * reflectView;
 
+    glm::vec4 clipPlaneReflection(0.0f, 1.0f, 0.0f, -waterHeight + 0.5f);
+
 
     shaders["worldmesh"]->Use();
-    scene.worldmesh.Draw(*shaders["worldmesh"], reflectView, projection, scene.camera.Position, scene.sun.direction, lightSpaceMatrix, shadowMap);
+    scene.worldmesh.Draw(*shaders["worldmesh"], reflectView, projection, scene.camera.Position, scene.sun.direction, lightSpaceMatrix, shadowMap, clipPlaneReflection);
     
     if (useCubemap)
         scene.cubemap.Draw(*shaders["cubemap"], reflectView, projection);
@@ -509,10 +516,16 @@ void Application::drawRefRefl()
 
     glm::mat4 normalView = scene.camera.GetViewMatrix();
 
+    glm::vec4 clipPlaneRefraction(0.0f, -1.0f, 0.0f, waterHeight + 0.5f);
+
     shaders["worldmesh"]->Use();
-    scene.worldmesh.Draw(*shaders["worldmesh"], normalView, projection, scene.camera.Position, scene.sun.direction, lightSpaceMatrix, shadowMap);
+    scene.worldmesh.Draw(*shaders["worldmesh"], normalView, projection, scene.camera.Position, scene.sun.direction, 
+        lightSpaceMatrix, shadowMap, clipPlaneRefraction);
     
-    drawUnderwaterObjects(normalView, projection);
+    drawUnderwaterObjects(normalView, projection, clipPlaneRefraction);
+
+    // Disabling the clip space
+    glDisable(GL_CLIP_DISTANCE0);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0); 
     glViewport(0, 0, width, height);
@@ -522,8 +535,6 @@ void Application::drawRefRefl()
     int refHeight = waterFrameBuffer.REFLECTION_HEIGHT;
     int refrWidth = waterFrameBuffer.REFRACTION_WIDTH;
     int refrHeight = waterFrameBuffer.REFRACTION_HEIGHT;
-
-    
 
     
     glBindFramebuffer(GL_READ_FRAMEBUFFER, waterFrameBuffer.reflectionFrameBuffer);
@@ -544,9 +555,17 @@ void Application::drawRefRefl()
 
 }
 
-void Application::drawUnderwaterObjects(glm::mat4 view, glm::mat4 projection)
+void Application::drawUnderwaterObjects(glm::mat4 view, glm::mat4 projection, glm::vec4 clipPlane)
 {
+    shaders["reef"]->Use();
+    shaders["reef"]->SetVec4("clipPlane", clipPlane);
     scene.reef.Draw(*shaders["reef"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap, scene.worldmesh.headlightPos, scene.worldmesh.headlightColor);
+    
+    shaders["axolotl"]->Use();
+    shaders["axolotl"]->SetVec4("clipPlane", clipPlane);
     scene.axolotl.Draw(*shaders["axolotl"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap);
+    
+    shaders["fish"]->Use();
+    shaders["fish"]->SetVec4("clipPlane", clipPlane);
     scene.fish.Draw(*shaders["fish"], view, projection, scene.sun.direction, scene.camera.Position);
 }

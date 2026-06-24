@@ -17,6 +17,11 @@ uniform vec2 chunkOffset;
 uniform vec2 textureSize;
 uniform vec3 terrainParams;
 uniform float textureTileSize;
+uniform vec4 clipPlane;
+
+#if __VERSION__ >= 130
+out float gl_ClipDistance[1];
+#endif
 
 float terrainHeight(vec2 g) {
     return (texture(heightmap, g / textureSize).r * terrainParams.x) + terrainParams.y;
@@ -39,6 +44,8 @@ void main() {
     vec3 N = normalize(vec3(hL - hR, 2.0 * eps, hD - hU));
     vec3 T = normalize(vec3(1.0, 0.0, 0.0) - N * N.x);
     TBN = mat3(T, cross(N, T), N);
+
+    gl_ClipDistance[0] = dot(vec4(WorldPos, 1.0), clipPlane);
 
     FragPosLightSpace = lightSpaceMatrix * vec4(WorldPos, 1.0);
     gl_Position = projection * view * model * vec4(WorldPos, 1.0);

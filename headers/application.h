@@ -33,7 +33,7 @@ class Application
         void openGLConfiguration();
         void openGLDisableMouse();
         void shadersInit();
-        void drawUnderwaterObjects(glm::mat4 view, glm::mat4 projection);
+        void drawUnderwaterObjects(glm::mat4 view, glm::mat4 projection, glm::vec4 clipPlane);
         void drawRest();
         void drawRefRefl();
 

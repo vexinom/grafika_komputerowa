@@ -267,7 +267,9 @@ WorldMesh::~WorldMesh() {
     glDeleteTextures(1, &grassNormalTexture);
 }
 
-void WorldMesh::Draw(Shader& shader, const glm::mat4 & view, glm::mat4 & projection, const glm::vec3& cameraPosition, const glm::vec3& sunDirection, const glm::mat4& lightSpaceMatrix, unsigned int shadowMap)
+void WorldMesh::Draw(Shader& shader, const glm::mat4 & view, glm::mat4 & projection, const glm::vec3& cameraPosition, 
+                    const glm::vec3& sunDirection, const glm::mat4& lightSpaceMatrix, unsigned int shadowMap,
+                    glm::vec4 & clipPlane)
 {
 
     glm::mat4 viewProjection = projection * view;
@@ -319,6 +321,7 @@ void WorldMesh::Draw(Shader& shader, const glm::mat4 & view, glm::mat4 & project
     shader.SetVec3("headlightPos", headlightPos);
     shader.SetVec3("headlightColor", headlightColor);
     shader.SetFloat("water_level", config::WATERLEVEL);
+    shader.SetVec4("clipPlane", clipPlane);
 
 
     for(size_t i = 0; i < chunks.size(); i++)
