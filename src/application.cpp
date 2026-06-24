@@ -212,17 +212,16 @@ void Application::Run()
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);
 
+        
+
         scene.worldmesh.Draw(*shaders["worldmesh"], view, projection, scene.camera.Position, scene.sun.direction, lightSpaceMatrix, shadowMap);
 
+        drawUnderwaterObjects(view, projection);
         scene.tube.Draw(*shaders["tube"], view, projection, scene.sun.direction, scene.camera.Position);
 
         scene.monument.Draw(*shaders["object"], view, projection, scene.sun.direction, scene.camera.Position);
 
-        scene.reef.Draw(*shaders["reef"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap, headlightPos, headlightColor);
-
-        scene.axolotl.Draw(*shaders["axolotl"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap);
-
-        scene.fish.Draw(*shaders["fish"], view, projection, scene.sun.direction, scene.camera.Position);
+        
         
         if (useCubemap)
             scene.cubemap.Draw(*shaders["cubemap"], view, projection);
@@ -247,7 +246,13 @@ void Application::Run()
         glDisable(GL_BLEND);
 
         drawFBO(currentFrame);
+        if (config::draw_ref == true)
+        {
+            drawRefRefl();
+        }
 
+        
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         glfwSwapBuffers(window);
         
@@ -256,6 +261,7 @@ void Application::Run()
         if (currentTime - lastTime >= 1.0)
         {
             char title[128];
+
             snprintf(title, sizeof(title), "OpenGL Terrain | FPS: %d", frameCount);
             glfwSetWindowTitle(window, title);
             
@@ -429,7 +435,7 @@ void Application::cleanUp()
 
 void Application::openGLConfiguration()
 {
-    glfwWindowHint(GLFW_SAMPLES, 4);
+    glfwWindowHint(GLFW_SAMPLES, 0);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -462,4 +468,85 @@ void Application::shadersInit()
     shaders["reef"] = new Shader("shaders/reef_vertex.glsl", "shaders/reef_fragment.glsl");
     shaders["seaweed"] = new Shader("shaders/seaweed_vertex.glsl", "shaders/seaweed_fragment.glsl");
     shaders["particle"] = new Shader("shaders/particle_vertex.glsl", "shaders/particle_fragment.glsl");
+}
+
+void Application::drawRefRefl()
+{
+    glm::mat4 projection = scene.camera.GetProjectionMatrix();
+    float waterHeight = scene.watermesh.waterLevel;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, waterFrameBuffer.reflectionFrameBuffer);
+    glViewport(0, 0, waterFrameBuffer.REFLECTION_WIDTH, waterFrameBuffer.REFLECTION_HEIGHT);
+    glClearColor(1.0f, 0.0f, 0.0f, 1.0f); 
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
+
+    float distance = 2.0f * (scene.camera.Position.y - waterHeight);
+    scene.camera.Position.y -= distance;
+
+    scene.camera.InvertPitch();
+
+    glm::mat4 reflectView = scene.camera.GetViewMatrix();
+    glm::mat4 reflectViewProj = projection * reflectView;
+
+
+    shaders["worldmesh"]->Use();
+    scene.worldmesh.Draw(*shaders["worldmesh"], reflectView, projection, scene.camera.Position, scene.sun.direction, lightSpaceMatrix, shadowMap);
+    
+    if (useCubemap)
+        scene.cubemap.Draw(*shaders["cubemap"], reflectView, projection);
+    else
+        scene.skydome.Draw(*shaders["skydome"], reflectViewProj, scene.camera.Position, scene.sun.direction, glfwGetTime());
+
+    scene.camera.Position.y += distance;
+    scene.camera.InvertPitch();
+
+    glBindFramebuffer(GL_FRAMEBUFFER, waterFrameBuffer.refractionFrameBuffer);
+    glViewport(0, 0, waterFrameBuffer.REFRACTION_WIDTH, waterFrameBuffer.REFRACTION_HEIGHT);
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
+
+    glm::mat4 normalView = scene.camera.GetViewMatrix();
+
+    shaders["worldmesh"]->Use();
+    scene.worldmesh.Draw(*shaders["worldmesh"], normalView, projection, scene.camera.Position, scene.sun.direction, lightSpaceMatrix, shadowMap);
+    
+    drawUnderwaterObjects(normalView, projection);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0); 
+    glViewport(0, 0, width, height);
+    glDisable(GL_DEPTH_TEST);
+
+    int refWidth = waterFrameBuffer.REFLECTION_WIDTH;
+    int refHeight = waterFrameBuffer.REFLECTION_HEIGHT;
+    int refrWidth = waterFrameBuffer.REFRACTION_WIDTH;
+    int refrHeight = waterFrameBuffer.REFRACTION_HEIGHT;
+
+    
+
+    
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, waterFrameBuffer.reflectionFrameBuffer);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); 
+    glBlitFramebuffer(
+        0, 0, refWidth, refHeight,                        
+        0, height - (height / 3), width / 3, height,      
+        GL_COLOR_BUFFER_BIT, GL_LINEAR                    
+    );
+
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, waterFrameBuffer.refractionFrameBuffer); 
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); 
+    glBlitFramebuffer(
+        0, 0, refrWidth, refrHeight,                 
+        width - (width / 3), height - (height / 3), width, height,      
+        GL_COLOR_BUFFER_BIT, GL_LINEAR                   
+    );
+
+}
+
+void Application::drawUnderwaterObjects(glm::mat4 view, glm::mat4 projection)
+{
+    scene.reef.Draw(*shaders["reef"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap, scene.worldmesh.headlightPos, scene.worldmesh.headlightColor);
+    scene.axolotl.Draw(*shaders["axolotl"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap);
+    scene.fish.Draw(*shaders["fish"], view, projection, scene.sun.direction, scene.camera.Position);
 }

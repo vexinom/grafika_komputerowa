@@ -7,7 +7,7 @@ Camera::Camera()
     FOV = 55.0f;
     Aspect = 800.0f / 600.0f;
 
-    NearPlane = 0.1f;
+    NearPlane = config::NEAR_PLANE;
     FarPlane = config::FAR_PLANE;
 
     // spawn on the shallow shelf among the reef, looking across it toward the deep drop-off
@@ -68,4 +68,13 @@ void Camera::LookAt(const glm::vec3& eye, const glm::vec3& target)
     float pitch = asin(glm::clamp(forward.y, -1.0f, 1.0f));
     float yaw = atan2(-forward.x, -forward.z);
     SetView(eye, yaw, pitch);
+}
+
+void Camera::InvertPitch()
+{
+    Pitch = -Pitch;
+    glm::quat qYaw = glm::angleAxis(Yaw, glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::quat qPitch = glm::angleAxis(Pitch, glm::vec3(1.0f, 0.0f, 0.0f));
+    
+    Orientation = glm::normalize(qYaw * qPitch);
 }

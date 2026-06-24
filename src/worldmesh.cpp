@@ -332,11 +332,11 @@ void WorldMesh::Draw(Shader& shader, const glm::mat4 & view, glm::mat4 & project
         float distance = glm::distance(cameraPosition, chunkCenter);
 
         int lod = 0;
-        if(distance > 600.0f)
+        if(distance > config::LOD_2_DISTANCE)
         {
             lod = 2;
         }
-        else if(distance > 250.0f)
+        else if(distance > config::LOD_1_DISTANCE)
         {
             lod = 1;
         }
@@ -379,11 +379,11 @@ void WorldMesh::DrawDepth(Shader& shader, const glm::mat4& lightSpaceMatrix, con
         float distance = glm::distance(cameraPosition, chunkCenter);
 
         int lod = 0;
-        if(distance > 600.0f)
+        if(distance > config::LOD_2_DISTANCE)
         {
             lod = 2;
         }
-        else if(distance > 250.0f)
+        else if(distance > config::LOD_1_DISTANCE)
         {
             lod = 1;
         }

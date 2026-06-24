@@ -8,8 +8,8 @@ class WaterFrameBuffers
 public:
  
 
-    const int REFLECTION_WIDTH = 320;
-    const int REFLECTION_HEIGHT = 180;
+    const int REFLECTION_WIDTH = 1280;
+    const int REFLECTION_HEIGHT = 720;
 
     const int REFRACTION_WIDTH = 1280;
     const int REFRACTION_HEIGHT = 720;
@@ -43,6 +43,9 @@ public:
     GLuint getReflectionTexture();
     GLuint getRefractionTexture();
     GLuint getRefractionDepthTexture();
+
+    GLuint getReflectionFBO() { return reflectionFrameBuffer; }
+    GLuint getRefractionFBO() { return refractionFrameBuffer; }
 
     void bindReflectionFrameBuffer();
     void bindRefractionFrameBuffer();

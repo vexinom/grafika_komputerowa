@@ -9,4 +9,11 @@ namespace config
     const float WATERLEVEL = 400.0f;
     const float MAX_WAVE_HEIGHT = 420.0f;
     const float FAR_PLANE = 4000.0f;
+    const float NEAR_PLANE = 0.1f;
+    const float LOD_1_DISTANCE = 350.0f;
+    const float LOD_2_DISTANCE = 600.0f;
+
+    inline bool reflections = true;
+    inline bool reflaction = true;
+    inline bool draw_ref = true;
 }
