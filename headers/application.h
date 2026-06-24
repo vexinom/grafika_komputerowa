@@ -59,7 +59,7 @@ class Application
         glm::mat4 lightSpaceMatrix;
         static const unsigned int SHADOW_RESOLUTION = 4096;
 
-        bool useCubemap = true;
+        bool useCubemap = false;
         bool cubemapKeyDown = false;
 
         // edge-trigger state for the new interactions
