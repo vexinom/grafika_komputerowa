@@ -97,7 +97,8 @@ void WaterMesh::Init()
 }
 
 void WaterMesh::Draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection, const glm::vec3& cameraPosition, 
-                    const glm::vec3& sunDirection, unsigned int heightmapTexture, float time) 
+                    const glm::vec3& sunDirection, unsigned int heightmapTexture, float time,
+                    GLuint reflectionTexture, GLuint refractionTexture) 
 {
     shader.Use();
     glm::mat4 viewProjection = projection * view;
@@ -110,12 +111,21 @@ void WaterMesh::Draw(Shader& shader, const glm::mat4& view, const glm::mat4& pro
     shader.SetVec3("viewPos", cameraPosition);
     shader.SetFloat("time", time);
     shader.SetFloat("water_level", waterLevel);
+    shader.SetVec2("textureSize", glm::vec2(2048.0f, 2048.0f));
+    shader.SetVec3("terrainParams", glm::vec3(config::Y_SCALE_TERRAIN, 0.0f, 5.0f));
 
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, heightmapTexture);
     shader.SetInt("heightmap", 3);
-    shader.SetVec2("textureSize", glm::vec2(2048.0f, 2048.0f));
-    shader.SetVec3("terrainParams", glm::vec3(config::Y_SCALE_TERRAIN, 0.0f, 5.0f));
+
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, reflectionTexture);
+    shader.SetInt("reflectionTexture", 4);
+
+    glActiveTexture(GL_TEXTURE5);
+    glBindTexture(GL_TEXTURE_2D, refractionTexture);
+    shader.SetInt("refractionTexture", 5);
+
 
     glBindVertexArray(VAO);
 
@@ -127,7 +137,7 @@ void WaterMesh::Draw(Shader& shader, const glm::mat4& view, const glm::mat4& pro
     int cameraChunkX = (int)std::floor(cameraPosition.x / chunkWorldSize);
     int cameraChunkZ = (int)std::floor(cameraPosition.z / chunkWorldSize);
 
-    int viewDistance = 7;
+    int viewDistance = config::WATER_CHUNK_VIEW_DISTANCE;
 
     for (int z = -viewDistance; z <= viewDistance; z++)
     {

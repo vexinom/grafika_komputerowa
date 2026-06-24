@@ -118,8 +118,13 @@ void main()
     vec3 direct = (kd * albedo / PI + specular) * radiance * NdotL * (1.0 - shadow);
 
     vec3 ambientDay = vec3(0.3, 0.3, 0.3);
-    vec3 ambientNight = vec3(0.15, 0.15, 0.25);
-    vec3 ambientColor = mix(ambientNight, ambientDay, sunIntensity);
+    vec3 ambientNightUnderwater = vec3(0.15, 0.15, 0.25); 
+    vec3 ambientNightAboveWater = vec3(0.02, 0.02, 0.04);
+
+    float aboveWaterMask = smoothstep(water_level - 1.0, water_level + 1.0, Height);
+    vec3 currentAmbientNight = mix(ambientNightUnderwater, ambientNightAboveWater, aboveWaterMask);
+
+    vec3 ambientColor = mix(currentAmbientNight, ambientDay, sunIntensity);
     vec3 ambient = albedo * ambientColor;
 
     vec3 color = ambient + direct;

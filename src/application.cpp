@@ -196,6 +196,12 @@ void Application::Run()
 
         ShadowPass();
 
+        if (config::draw_ref == true)
+        {
+            drawRefRefl();
+        }
+
+
         waterFrameBuffer.bindOceandepthFrameBuffer();
         glClearColor( 0.1f, 0.1f, 0.1f, 1.0f);
 
@@ -243,17 +249,15 @@ void Application::Run()
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDepthMask(GL_FALSE);
 
-        scene.watermesh.Draw(*shaders["watermesh"], view, projection, scene.camera.Position, scene.sun.direction, scene.worldmesh.heightmapTexture, currentFrame);
+        scene.watermesh.Draw(*shaders["watermesh"], view, projection, scene.camera.Position, scene.sun.direction, 
+                            scene.worldmesh.heightmapTexture, currentFrame, waterFrameBuffer.reflectionTexture, 
+                            waterFrameBuffer.refractionTexture);
 
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);
 
         drawFBO(currentFrame);
-        if (config::draw_ref == true)
-        {
-            drawRefRefl();
-        }
-
+        
         
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -494,7 +498,7 @@ void Application::drawRefRefl()
     glm::mat4 reflectView = scene.camera.GetViewMatrix();
     glm::mat4 reflectViewProj = projection * reflectView;
 
-    glm::vec4 clipPlaneReflection(0.0f, 1.0f, 0.0f, -waterHeight + 0.5f);
+    glm::vec4 clipPlaneReflection(0.0f, 1.0f, 0.0f, -waterHeight + 0.2f);
 
 
     shaders["worldmesh"]->Use();
@@ -516,7 +520,7 @@ void Application::drawRefRefl()
 
     glm::mat4 normalView = scene.camera.GetViewMatrix();
 
-    glm::vec4 clipPlaneRefraction(0.0f, -1.0f, 0.0f, waterHeight + 0.5f);
+    glm::vec4 clipPlaneRefraction(0.0f, -1.0f, 0.0f, waterHeight + 0.2f);
 
     shaders["worldmesh"]->Use();
     scene.worldmesh.Draw(*shaders["worldmesh"], normalView, projection, scene.camera.Position, scene.sun.direction, 
@@ -530,28 +534,6 @@ void Application::drawRefRefl()
     glBindFramebuffer(GL_FRAMEBUFFER, 0); 
     glViewport(0, 0, width, height);
     glDisable(GL_DEPTH_TEST);
-
-    int refWidth = waterFrameBuffer.REFLECTION_WIDTH;
-    int refHeight = waterFrameBuffer.REFLECTION_HEIGHT;
-    int refrWidth = waterFrameBuffer.REFRACTION_WIDTH;
-    int refrHeight = waterFrameBuffer.REFRACTION_HEIGHT;
-
-    
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, waterFrameBuffer.reflectionFrameBuffer);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); 
-    glBlitFramebuffer(
-        0, 0, refWidth, refHeight,                        
-        0, height - (height / 3), width / 3, height,      
-        GL_COLOR_BUFFER_BIT, GL_LINEAR                    
-    );
-
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, waterFrameBuffer.refractionFrameBuffer); 
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); 
-    glBlitFramebuffer(
-        0, 0, refrWidth, refrHeight,                 
-        width - (width / 3), height - (height / 3), width, height,      
-        GL_COLOR_BUFFER_BIT, GL_LINEAR                   
-    );
 
 }
 

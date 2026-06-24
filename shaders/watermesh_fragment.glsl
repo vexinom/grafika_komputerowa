@@ -2,7 +2,8 @@
 
 in vec4 v_color;
 in vec3 FragPos; 
-in vec3 Normal;  
+in vec3 Normal;
+in vec4 ClipSpace;  
 
 out vec4 FragColor;
 
@@ -12,6 +13,8 @@ uniform vec3 terrainParams;
 uniform float time;
 uniform sampler2D heightmap;
 uniform vec2 textureSize;
+uniform sampler2D reflectionTexture;
+uniform sampler2D refractionTexture;
 
 void main()
 {
@@ -42,6 +45,29 @@ void main()
     vec3 specular = specularStrength * spec * specColor * sunIntensity; 
 
     vec3 finalColor = ambient + diffuse + specular;
+
+    vec2 ndc = (ClipSpace.xy / ClipSpace.w) / 2.0 + 0.5;
+
+    vec2 reflectTexCoords = vec2(ndc.x, 1.0 - ndc.y);
+    vec2 refractTexCoords = vec2(ndc.x, ndc.y);
+
+    vec2 distortion = norm.xz * 0.02;
+
+    reflectTexCoords += distortion;
+    refractTexCoords += distortion;
+
+    reflectTexCoords = clamp(reflectTexCoords, 0.001, 0.999);
+    refractTexCoords = clamp(refractTexCoords, 0.001, 0.999);
+
+    vec4 reflectColor = texture(reflectionTexture, reflectTexCoords);
+    vec4 refractColor = texture(refractionTexture, refractTexCoords);
+
+    float refractiveFactor = dot(viewDirection, vec3(0.0, 1.0, 0.0));
+    refractiveFactor = pow(clamp(refractiveFactor, 0.0, 1.0), 1.5);
+
+    vec4 waterFBOColor = mix(reflectColor, refractColor, refractiveFactor);
+
+    finalColor = mix(finalColor, waterFBOColor.rgb, 0.6);
 
     vec2 texCoordHeight = FragPos.xz / textureSize;
     float rawY = texture(heightmap, texCoordHeight).r;
@@ -81,5 +107,5 @@ void main()
 
     finalColor = mix(finalColor, currentHorizon, fogFactor);
 
-    FragColor = vec4(finalColor, waterBaseColor.a);
+    FragColor = vec4(finalColor, 1.0);
 }
