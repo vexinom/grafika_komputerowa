@@ -15,6 +15,7 @@ uniform sampler2D heightmap;
 uniform vec2 textureSize;
 uniform sampler2D reflectionTexture;
 uniform sampler2D refractionTexture;
+uniform bool useReflections;
 
 void main()
 {
@@ -59,16 +60,23 @@ void main()
     reflectTexCoords = clamp(reflectTexCoords, 0.001, 0.999);
     refractTexCoords = clamp(refractTexCoords, 0.001, 0.999);
 
-    vec4 reflectColor = texture(reflectionTexture, reflectTexCoords);
-    vec4 refractColor = texture(refractionTexture, refractTexCoords);
+    if (useReflections) 
+    {
+        vec4 reflectColor = texture(reflectionTexture, reflectTexCoords);
+        vec4 refractColor = texture(refractionTexture, refractTexCoords);
 
-    float refractiveFactor = dot(viewDirection, vec3(0.0, 1.0, 0.0));
-    refractiveFactor = pow(clamp(refractiveFactor, 0.0, 1.0), 1.5);
+        float refractiveFactor = dot(viewDirection, vec3(0.0, 1.0, 0.0));
+        refractiveFactor = pow(clamp(refractiveFactor, 0.0, 1.0), 1.5);
 
-    vec4 waterFBOColor = mix(reflectColor, refractColor, refractiveFactor);
+        vec4 waterFBOColor = mix(reflectColor, refractColor, refractiveFactor);
 
-    finalColor = mix(finalColor, waterFBOColor.rgb, 0.6);
-
+        finalColor = mix(finalColor, waterFBOColor.rgb, 0.6);
+    } 
+    else 
+    {
+        
+        finalColor = mix(finalColor, waterBaseColor.rgb, 0.6);
+    }
 
     vec2 texCoordHeight = FragPos.xz / textureSize;
     
@@ -77,7 +85,6 @@ void main()
     
     float rawY = texture(heightmap, texCoordHeight).r;
     float terrainHeight = (rawY * terrainParams.x) - terrainParams.y;
-    // --------------------------------------
    
     float waterDepth = FragPos.y - terrainHeight;
     float foamThickness = 125.0;

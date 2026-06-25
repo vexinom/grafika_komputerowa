@@ -37,11 +37,6 @@ bool Application::Init()
         return false;
     }
 
-    if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
-        fprintf(stderr, "Failed to initialize GLAD\n");
-        return false;
-    }
 
     glfwSwapInterval(0);
 
@@ -182,6 +177,8 @@ void Application::Run()
 
         glfwPollEvents();
         Input_Events();
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
 
         scene.DailyCycle(currentFrame);
 
@@ -196,9 +193,9 @@ void Application::Run()
 
         ShadowPass();
 
-        if (config::draw_ref == true)
+        if (drawRefRefl == true)
         {
-            drawRefRefl();
+            drawReflectionsReflaction();
         }
 
 
@@ -231,12 +228,12 @@ void Application::Run()
         scene.monument.Draw(*shaders["object"], view, projection, scene.sun.direction, scene.camera.Position);
 
         
-        
+        glDisable(GL_CULL_FACE);
         if (useCubemap)
             scene.cubemap.Draw(*shaders["cubemap"], view, projection);
         else
             scene.skydome.Draw(*shaders["skydome"], viewProjection, scene.camera.Position, scene.sun.direction, currentFrame);
-
+        glEnable(GL_CULL_FACE);
 
         glDepthMask(GL_TRUE);
         glEnable(GL_BLEND);
@@ -248,6 +245,9 @@ void Application::Run()
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDepthMask(GL_FALSE);
+
+        shaders["watermesh"]->Use();
+        shaders["watermesh"]->SetInt("useReflections", drawRefRefl ? 1 : 0);
 
         scene.watermesh.Draw(*shaders["watermesh"], view, projection, scene.camera.Position, scene.sun.direction, 
                             scene.worldmesh.heightmapTexture, currentFrame, waterFrameBuffer.reflectionTexture, 
@@ -337,6 +337,19 @@ void Application::Input_Events()
     else
     {
         cubemapKeyDown = false;
+    }
+
+    if(glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
+    {
+        if(!rKeyDown)
+        {
+            drawRefRefl = !drawRefRefl; 
+            rKeyDown = true;
+        }
+    }
+    else
+    {
+        rKeyDown = false; 
     }
 
     if(glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
@@ -478,7 +491,7 @@ void Application::shadersInit()
     shaders["particle"] = new Shader("shaders/particle_vertex.glsl", "shaders/particle_fragment.glsl");
 }
 
-void Application::drawRefRefl()
+void Application::drawReflectionsReflaction()
 {
     glm::mat4 projection = scene.camera.GetProjectionMatrix();
     float waterHeight = scene.watermesh.waterLevel;
@@ -501,14 +514,20 @@ void Application::drawRefRefl()
 
     glm::vec4 clipPlaneReflection(0.0f, 1.0f, 0.0f, -waterHeight + 0.2f);
 
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
 
     shaders["worldmesh"]->Use();
     scene.worldmesh.Draw(*shaders["worldmesh"], reflectView, projection, scene.camera.Position, scene.sun.direction, lightSpaceMatrix, shadowMap, clipPlaneReflection);
     
+    glDisable(GL_CULL_FACE);
     if (useCubemap)
         scene.cubemap.Draw(*shaders["cubemap"], reflectView, projection);
     else
         scene.skydome.Draw(*shaders["skydome"], reflectViewProj, scene.camera.Position, scene.sun.direction, glfwGetTime());
+
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
 
     scene.camera.Position.y += distance;
     scene.camera.InvertPitch();

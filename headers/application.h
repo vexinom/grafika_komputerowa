@@ -34,8 +34,7 @@ class Application
         void openGLDisableMouse();
         void shadersInit();
         void drawUnderwaterObjects(glm::mat4 view, glm::mat4 projection, glm::vec4 clipPlane);
-        void drawRest();
-        void drawRefRefl();
+        void drawReflectionsReflaction();
 
         Application(int _width, int _height)
         {
@@ -61,11 +60,13 @@ class Application
 
         bool useCubemap = false;
         bool cubemapKeyDown = false;
+        bool drawRefRefl = true;
 
         // edge-trigger state for the new interactions
         bool headlightKeyDown = false;
         bool pauseKeyDown = false;
         bool pokeMouseDown = false;
+        bool rKeyDown = false;
 
         bool teleportKeyDown = false;
         bool teleportToFish = false;   // false: nastepny H -> axolotl, true: nastepny H -> ryba

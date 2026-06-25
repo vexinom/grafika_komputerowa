@@ -15,7 +15,4 @@ namespace config
     const int WATER_CHUNK_VIEW_DISTANCE = 8;
     const int HEIGHTMAP_SIZE = 4096;
 
-    inline bool reflections = true;
-    inline bool reflaction = true;
-    inline bool draw_ref = true;
 }
