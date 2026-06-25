@@ -251,7 +251,8 @@ void Application::Run()
 
         scene.watermesh.Draw(*shaders["watermesh"], view, projection, scene.camera.Position, scene.sun.direction, 
                             scene.worldmesh.heightmapTexture, currentFrame, waterFrameBuffer.reflectionTexture, 
-                            waterFrameBuffer.refractionTexture);
+                            waterFrameBuffer.refractionTexture, scene.worldmesh.width, scene.worldmesh.height,
+                            scene.worldmesh.yScale, scene.worldmesh.yShift);
 
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);

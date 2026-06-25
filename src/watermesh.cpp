@@ -98,7 +98,8 @@ void WaterMesh::Init()
 
 void WaterMesh::Draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection, const glm::vec3& cameraPosition, 
                     const glm::vec3& sunDirection, unsigned int heightmapTexture, float time,
-                    GLuint reflectionTexture, GLuint refractionTexture) 
+                    GLuint reflectionTexture, GLuint refractionTexture,
+                    float terrainWidth, float terrainHeight, float yScale, float yShift) 
 {
     shader.Use();
     glm::mat4 viewProjection = projection * view;
@@ -111,8 +112,8 @@ void WaterMesh::Draw(Shader& shader, const glm::mat4& view, const glm::mat4& pro
     shader.SetVec3("viewPos", cameraPosition);
     shader.SetFloat("time", time);
     shader.SetFloat("water_level", waterLevel);
-    shader.SetVec2("textureSize", glm::vec2(2048.0f, 2048.0f));
-    shader.SetVec3("terrainParams", glm::vec3(config::Y_SCALE_TERRAIN, 0.0f, 5.0f));
+    shader.SetVec2("textureSize", glm::vec2(terrainWidth, terrainHeight));
+    shader.SetVec3("terrainParams", glm::vec3(yScale, yShift, 5.0f));
 
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, heightmapTexture);

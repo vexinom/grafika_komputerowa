@@ -70,7 +70,7 @@ void main()
     finalColor = mix(finalColor, waterFBOColor.rgb, 0.6);
 
 
-    vec2 texCoordHeight = (FragPos.xz / textureSize) + 0.5;
+    vec2 texCoordHeight = FragPos.xz / textureSize;
     
 
     texCoordHeight = clamp(texCoordHeight, 0.0, 1.0);
@@ -80,12 +80,12 @@ void main()
     // --------------------------------------
    
     float waterDepth = FragPos.y - terrainHeight;
-    float foamThickness = 13.0;
+    float foamThickness = 125.0;
     float foamFactor = 1.0 - smoothstep(0.0, foamThickness, max(waterDepth, 0.0));
     foamFactor = pow(foamFactor, 2.0); 
     
-    vec3 foamColor = vec3(1.0, 1.0, 1.0);
-    finalColor = mix(finalColor, foamColor, foamFactor * 0.85);
+    vec3 foamColor = vec3(0.027, 0.737, 0.878);
+    finalColor = mix(finalColor, foamColor, foamFactor * 0.5);
 
     float distance = length(viewPos - FragPos);
     float fogMin = 800.0;  
