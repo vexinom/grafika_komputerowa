@@ -12,6 +12,7 @@ uniform float water_level;
 out vec4 v_color;
 out vec3 FragPos;
 out vec3 Normal;
+out vec4 ClipSpace;
 
 const float MSCALE = 0.05; 
 const float TSCALE = 0.02;  
@@ -71,6 +72,8 @@ void main()
     FragPos = vec3(worldPos); 
     
     gl_Position = projection * view * model * worldPos;
+
+    ClipSpace = gl_Position;
     
     float colorIntensity = max(0.2, 1.0 - (height / SCALE) * 0.8);
     v_color = vec4(colorIntensity, colorIntensity, colorIntensity + 0.2, 1.0); 

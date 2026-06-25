@@ -33,6 +33,8 @@ class Application
         void openGLConfiguration();
         void openGLDisableMouse();
         void shadersInit();
+        void drawUnderwaterObjects(glm::mat4 view, glm::mat4 projection, glm::vec4 clipPlane);
+        void drawReflectionsReflaction();
 
         void UpdateViewport(int framebufferWidth, int framebufferHeight);
         void ToggleFullscreen();
@@ -62,15 +64,17 @@ class Application
         glm::mat4 lightSpaceMatrix;
         static const unsigned int SHADOW_RESOLUTION = 4096;
 
-        bool useCubemap = true;
+        bool useCubemap = false;
         bool cubemapKeyDown = false;
+        bool drawRefRefl = true;
 
         // edge-trigger state for the new interactions
         bool headlightKeyDown = false;
         bool pauseKeyDown = false;
         bool pokeMouseDown = false;
         bool otterCycleKeyDown = false;
-        bool otterStopKeyDown = false;
+        bool otterStopKeyDown = false;        bool rKeyDown = false;
+
         bool teleportKeyDown = false;
         bool teleportToFish = false;   // false: nastepny H -> axolotl, true: nastepny H -> ryba
 

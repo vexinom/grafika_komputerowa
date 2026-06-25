@@ -28,5 +28,6 @@ class Camera
         void MoveLocal(const glm::vec3 & dir);
         void SetView(const glm::vec3& position, float yaw, float pitch);
         void LookAt(const glm::vec3& eye, const glm::vec3& target);
+        void InvertPitch();
 
 };

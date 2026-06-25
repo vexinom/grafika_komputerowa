@@ -45,11 +45,6 @@ bool Application::Init()
         return false;
     }
 
-    if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
-        fprintf(stderr, "Failed to initialize GLAD\n");
-        return false;
-    }
 
     glfwSwapInterval(0);
 
@@ -256,6 +251,8 @@ void Application::Run()
 
         glfwPollEvents();
         Input_Events();
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
 
         scene.DailyCycle(currentFrame);
 
@@ -276,6 +273,12 @@ void Application::Run()
 
         ShadowPass();
 
+        if (drawRefRefl == true)
+        {
+            drawReflectionsReflaction();
+        }
+
+
         waterFrameBuffer.bindOceandepthFrameBuffer();
         glClearColor( 0.1f, 0.1f, 0.1f, 1.0f);
 
@@ -288,16 +291,24 @@ void Application::Run()
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+        glm::vec4 fakeClipPlane(0.0f, -1.0f, 0.0f, 100000.0f);
         shaders["worldmesh"]->Use();
+        shaders["worldmesh"]->SetVec4("clipPlane", fakeClipPlane);
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);
 
-        scene.worldmesh.Draw(*shaders["worldmesh"], view, projection, scene.camera.Position, scene.sun.direction, lightSpaceMatrix, shadowMap);
+        
 
+        scene.worldmesh.Draw(*shaders["worldmesh"], view, projection, scene.camera.Position, scene.sun.direction, 
+            lightSpaceMatrix, shadowMap, fakeClipPlane);
+
+        drawUnderwaterObjects(view, projection, fakeClipPlane);
         scene.tube.Draw(*shaders["tube"], view, projection, scene.sun.direction, scene.camera.Position);
 
         scene.monument.Draw(*shaders["object"], view, projection, scene.sun.direction, scene.camera.Position);
 
+        
+        
         scene.reef.Draw(*shaders["reef"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap, headlightPos, headlightColor);
 
         scene.islandPalms.Draw(*shaders["palm"], view, projection, scene.sun.direction, scene.camera.Position);
@@ -313,11 +324,12 @@ void Application::Run()
 
         scene.otter.Draw(*shaders["otter"], view, projection, scene.sun.direction, scene.camera.Position);
 
+        glDisable(GL_CULL_FACE);
         if (useCubemap)
             scene.cubemap.Draw(*shaders["cubemap"], view, projection);
         else
             scene.skydome.Draw(*shaders["skydome"], viewProjection, scene.camera.Position, scene.sun.direction, currentFrame);
-
+        glEnable(GL_CULL_FACE);
 
         glDepthMask(GL_TRUE);
         glEnable(GL_BLEND);
@@ -330,13 +342,21 @@ void Application::Run()
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDepthMask(GL_FALSE);
 
-        scene.watermesh.Draw(*shaders["watermesh"], view, projection, scene.camera.Position, scene.sun.direction, scene.worldmesh.heightmapTexture, currentFrame);
+        shaders["watermesh"]->Use();
+        shaders["watermesh"]->SetInt("useReflections", drawRefRefl ? 1 : 0);
+
+        scene.watermesh.Draw(*shaders["watermesh"], view, projection, scene.camera.Position, scene.sun.direction, 
+                            scene.worldmesh.heightmapTexture, currentFrame, waterFrameBuffer.reflectionTexture, 
+                            waterFrameBuffer.refractionTexture, scene.worldmesh.width, scene.worldmesh.height,
+                            scene.worldmesh.yScale, scene.worldmesh.yShift);
 
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);
 
         drawFBO(currentFrame);
-
+        
+        
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         glfwSwapBuffers(window);
         
@@ -345,6 +365,7 @@ void Application::Run()
         if (currentTime - lastTime >= 1.0)
         {
             char title[128];
+
             snprintf(title, sizeof(title), "OpenGL Terrain | FPS: %d", frameCount);
             glfwSetWindowTitle(window, title);
             
@@ -530,6 +551,19 @@ void Application::Input_Events()
         cubemapKeyDown = false;
     }
 
+    if(glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
+    {
+        if(!rKeyDown)
+        {
+            drawRefRefl = !drawRefRefl; 
+            rKeyDown = true;
+        }
+    }
+    else
+    {
+        rKeyDown = false; 
+    }
+
     if(glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
         scene.worldmesh.roughness = glm::clamp(scene.worldmesh.roughness - deltaTime, 0.05f, 1.0f);
     if(glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
@@ -647,7 +681,7 @@ void Application::cleanUp()
 
 void Application::openGLConfiguration()
 {
-    glfwWindowHint(GLFW_SAMPLES, 4);
+    glfwWindowHint(GLFW_SAMPLES, 0);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -682,4 +716,85 @@ void Application::shadersInit()
     shaders["reef"] = new Shader("shaders/reef_vertex.glsl", "shaders/reef_fragment.glsl");
     shaders["seaweed"] = new Shader("shaders/seaweed_vertex.glsl", "shaders/seaweed_fragment.glsl");
     shaders["particle"] = new Shader("shaders/particle_vertex.glsl", "shaders/particle_fragment.glsl");
+}
+
+void Application::drawReflectionsReflaction()
+{
+    glm::mat4 projection = scene.camera.GetProjectionMatrix();
+    float waterHeight = scene.watermesh.waterLevel;
+
+    // Enabling the clip space
+    glEnable(GL_CLIP_DISTANCE0);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, waterFrameBuffer.reflectionFrameBuffer);
+    glViewport(0, 0, waterFrameBuffer.REFLECTION_WIDTH, waterFrameBuffer.REFLECTION_HEIGHT);
+    glClearColor(1.0f, 0.0f, 0.0f, 1.0f); 
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
+
+    float distance = 2.0f * (scene.camera.Position.y - waterHeight);
+    scene.camera.Position.y -= distance;
+    scene.camera.InvertPitch();
+
+    glm::mat4 reflectView = scene.camera.GetViewMatrix();
+    glm::mat4 reflectViewProj = projection * reflectView;
+
+    glm::vec4 clipPlaneReflection(0.0f, 1.0f, 0.0f, -waterHeight + 0.2f);
+
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+
+    shaders["worldmesh"]->Use();
+    scene.worldmesh.Draw(*shaders["worldmesh"], reflectView, projection, scene.camera.Position, scene.sun.direction, lightSpaceMatrix, shadowMap, clipPlaneReflection);
+    
+    glDisable(GL_CULL_FACE);
+    if (useCubemap)
+        scene.cubemap.Draw(*shaders["cubemap"], reflectView, projection);
+    else
+        scene.skydome.Draw(*shaders["skydome"], reflectViewProj, scene.camera.Position, scene.sun.direction, glfwGetTime());
+
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+
+    scene.camera.Position.y += distance;
+    scene.camera.InvertPitch();
+
+    glBindFramebuffer(GL_FRAMEBUFFER, waterFrameBuffer.refractionFrameBuffer);
+    glViewport(0, 0, waterFrameBuffer.REFRACTION_WIDTH, waterFrameBuffer.REFRACTION_HEIGHT);
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
+
+    glm::mat4 normalView = scene.camera.GetViewMatrix();
+
+    glm::vec4 clipPlaneRefraction(0.0f, -1.0f, 0.0f, waterHeight + 0.2f);
+
+    shaders["worldmesh"]->Use();
+    scene.worldmesh.Draw(*shaders["worldmesh"], normalView, projection, scene.camera.Position, scene.sun.direction, 
+        lightSpaceMatrix, shadowMap, clipPlaneRefraction);
+    
+    drawUnderwaterObjects(normalView, projection, clipPlaneRefraction);
+
+    // Disabling the clip space
+    glDisable(GL_CLIP_DISTANCE0);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0); 
+    glViewport(0, 0, width, height);
+    glDisable(GL_DEPTH_TEST);
+
+}
+
+void Application::drawUnderwaterObjects(glm::mat4 view, glm::mat4 projection, glm::vec4 clipPlane)
+{
+    shaders["reef"]->Use();
+    shaders["reef"]->SetVec4("clipPlane", clipPlane);
+    scene.reef.Draw(*shaders["reef"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap, scene.worldmesh.headlightPos, scene.worldmesh.headlightColor);
+    
+    shaders["axolotl"]->Use();
+    shaders["axolotl"]->SetVec4("clipPlane", clipPlane);
+    scene.axolotl.Draw(*shaders["axolotl"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap);
+    
+    shaders["fish"]->Use();
+    shaders["fish"]->SetVec4("clipPlane", clipPlane);
+    scene.fish.Draw(*shaders["fish"], view, projection, scene.sun.direction, scene.camera.Position);
 }

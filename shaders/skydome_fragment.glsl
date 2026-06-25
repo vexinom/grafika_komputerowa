@@ -7,6 +7,8 @@ in vec2 TexCoords;
 
 uniform vec3 sunDirection;
 uniform sampler2D nightSkyTexture;
+uniform sampler2D cloudTexture;
+uniform float time;
 
 void main()
 {
@@ -50,8 +52,13 @@ void main()
 
     vec3 nightTextureColor = texture(nightSkyTexture, TexCoords).rgb;
     float nightFade = smoothstep(0.1, -0.2, sunY);
-    
     finalColor = mix(finalColor, nightTextureColor, nightFade);
+
+    vec2 cloudUV = TexCoords + vec2(time * 0.001, time * 0.005);
+    vec4 cloudSample = texture(cloudTexture, cloudUV);
+    float cloudAlpha = cloudSample.a * sunVisibility;
+    
+    finalColor = mix(finalColor, cloudSample.rgb, cloudAlpha);
 
     FragColor = vec4(finalColor, 1.0);
 }
