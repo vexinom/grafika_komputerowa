@@ -28,6 +28,8 @@ bool Application::Init()
     }
 
     glfwMakeContextCurrent(window);
+    glfwSetWindowUserPointer(window, this);
+    glfwSetFramebufferSizeCallback(window, Application::FramebufferSizeCallback);
     openGLDisableMouse();
     
 
@@ -45,7 +47,11 @@ bool Application::Init()
 
     glfwSwapInterval(0);
 
-    glViewport(0, 0, width, height);
+    int framebufferWidth = 0;
+    int framebufferHeight = 0;
+    glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
+    UpdateViewport(framebufferWidth, framebufferHeight);
+
     glEnable(GL_DEPTH_TEST);
 
     //Initialization of shaders
@@ -59,6 +65,60 @@ bool Application::Init()
 
     return true;
 }
+
+
+void Application::FramebufferSizeCallback(GLFWwindow* window, int framebufferWidth, int framebufferHeight)
+{
+    Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
+
+    if(app)
+    {
+        app->UpdateViewport(framebufferWidth, framebufferHeight);
+    }
+}
+
+void Application::UpdateViewport(int framebufferWidth, int framebufferHeight)
+{
+    if(framebufferWidth <= 0 || framebufferHeight <= 0)
+    {
+        return;
+    }
+
+    width = framebufferWidth;
+    height = framebufferHeight;
+
+    scene.camera.Aspect = static_cast<float>(width) / static_cast<float>(height);
+    glViewport(0, 0, width, height);
+}
+
+void Application::ToggleFullscreen()
+{
+    if(!isFullscreen)
+    {
+        glfwGetWindowPos(window, &windowedPosX, &windowedPosY);
+        glfwGetWindowSize(window, &windowedWidth, &windowedHeight);
+
+        GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+
+        if(!monitor || !mode)
+        {
+            return;
+        }
+
+        glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+        isFullscreen = true;
+    }
+    else
+    {
+        glfwSetWindowMonitor(window, nullptr, windowedPosX, windowedPosY, windowedWidth, windowedHeight, 0);
+        isFullscreen = false;
+    }
+
+    firstMouse = true;
+    openGLDisableMouse();
+}
+
 
 bool Application::Init_Shadow()
 {
@@ -311,6 +371,19 @@ void Application::Input_Events()
 
     if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
         scene.camera.MoveLocal(glm::vec3(0.0f, 0.0f, currentVelocity));
+
+    if(glfwGetKey(window, GLFW_KEY_F11) == GLFW_PRESS)
+    {
+        if(!fullscreenKeyDown)
+        {
+            ToggleFullscreen();
+            fullscreenKeyDown = true;
+        }
+    }
+    else
+    {
+        fullscreenKeyDown = false;
+    }
 
     if(glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS)
     {

@@ -34,6 +34,10 @@ class Application
         void openGLDisableMouse();
         void shadersInit();
 
+        void UpdateViewport(int framebufferWidth, int framebufferHeight);
+        void ToggleFullscreen();
+        static void FramebufferSizeCallback(GLFWwindow* window, int framebufferWidth, int framebufferHeight);
+
         Application(int _width, int _height)
         {
             height = _height;
@@ -66,4 +70,12 @@ class Application
 
         bool teleportKeyDown = false;
         bool teleportToFish = false;   // false: nastepny H -> axolotl, true: nastepny H -> ryba
+
+        bool fullscreenKeyDown = false;
+        bool isFullscreen = false;
+
+        int windowedPosX = 100;
+        int windowedPosY = 100;
+        int windowedWidth = 1280;
+        int windowedHeight = 720;
 };
