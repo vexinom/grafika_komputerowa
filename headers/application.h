@@ -36,6 +36,8 @@ class Application
 
         void UpdateViewport(int framebufferWidth, int framebufferHeight);
         void ToggleFullscreen();
+        void UpdateThirdPersonCamera();
+        glm::mat4 PlayerModelMatrix() const;
         static void FramebufferSizeCallback(GLFWwindow* window, int framebufferWidth, int framebufferHeight);
 
         Application(int _width, int _height)
@@ -73,6 +75,10 @@ class Application
 
         bool fullscreenKeyDown = false;
         bool isFullscreen = false;
+
+        bool thirdPersonMode = false;
+        bool thirdPersonKeyDown = false;
+        glm::vec3 playerPosition = glm::vec3(1024.0f, 42.0f, 1900.0f);
 
         int windowedPosX = 100;
         int windowedPosY = 100;

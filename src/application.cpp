@@ -7,6 +7,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <chrono>
 
+namespace
+{
+    constexpr float PLAYER_EYE_HEIGHT = 18.0f;
+    constexpr float THIRD_PERSON_DISTANCE = 120.0f;
+}
+
 bool Application::Init()
 {
     
@@ -62,6 +68,7 @@ bool Application::Init()
 
     waterFrameBuffer.init();
     scene.Init();
+    playerPosition = scene.camera.Position - glm::vec3(0.0f, PLAYER_EYE_HEIGHT, 0.0f);
 
     return true;
 }
@@ -174,6 +181,12 @@ void Application::ShadowPass()
     shaders["depthobject"]->Use();
     scene.monument.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
     scene.axolotl.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
+
+    if(thirdPersonMode)
+    {
+        scene.axolotl.DrawSingleDepth(*shaders["depthobject"], lightSpaceMatrix, PlayerModelMatrix());
+    }
+
     scene.reef.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -246,7 +259,12 @@ void Application::Run()
         scene.DailyCycle(currentFrame);
 
         scene.axolotl.Update(deltaTime);
-        scene.fish.Update(deltaTime, scene.camera.Position);
+
+        glm::vec3 fishAvoidPosition = thirdPersonMode
+            ? playerPosition
+            : scene.camera.Position;
+
+        scene.fish.Update(deltaTime, fishAvoidPosition);
         scene.particles.Update(deltaTime, scene.camera.Position, currentFrame, scene.current);
 
         glm::vec3 headlightPos = scene.axolotl.HeadlightPosition();
@@ -281,6 +299,11 @@ void Application::Run()
         scene.reef.Draw(*shaders["reef"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap, headlightPos, headlightColor);
 
         scene.axolotl.Draw(*shaders["axolotl"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap);
+
+        if(thirdPersonMode)
+        {
+            scene.axolotl.DrawSingle(*shaders["axolotl"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap, PlayerModelMatrix());
+        }
 
         scene.fish.Draw(*shaders["fish"], view, projection, scene.sun.direction, scene.camera.Position);
         
@@ -325,6 +348,41 @@ void Application::Run()
     }
 }
 
+void Application::UpdateThirdPersonCamera()
+{
+    if(!thirdPersonMode)
+    {
+        return;
+    }
+
+    glm::vec3 target = playerPosition + glm::vec3(0.0f, PLAYER_EYE_HEIGHT, 0.0f);
+    glm::vec3 backward = scene.camera.Orientation * glm::vec3(0.0f, 0.0f, 1.0f);
+
+    if(glm::length(backward) < 1e-5f)
+    {
+        backward = glm::vec3(0.0f, 0.0f, 1.0f);
+    }
+
+    backward = glm::normalize(backward);
+    glm::vec3 eye = target + backward * THIRD_PERSON_DISTANCE;
+
+    scene.camera.LookAt(eye, target);
+}
+
+glm::mat4 Application::PlayerModelMatrix() const
+{
+    glm::vec3 forward = scene.camera.Orientation * glm::vec3(0.0f, 0.0f, -1.0f);
+    forward.y = 0.0f;
+
+    if(glm::length(forward) < 1e-5f)
+    {
+        forward = glm::vec3(0.0f, 0.0f, -1.0f);
+    }
+
+    forward = glm::normalize(forward);
+    return scene.axolotl.ModelMatrix(playerPosition, forward, 1.0f);
+}
+
 void Application::Input_Events()
 {
 
@@ -354,23 +412,91 @@ void Application::Input_Events()
     float currentVelocity = speedPerSecond * deltaTime;
 
 
-    if(glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-        scene.camera.MoveLocal(glm::vec3(0.0f, currentVelocity, 0.0f));
+    if(glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS)
+    {
+        if(!thirdPersonKeyDown)
+        {
+            bool turningOn = !thirdPersonMode;
+            thirdPersonMode = turningOn;
 
-    if(glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-        scene.camera.MoveLocal(glm::vec3(0.0f, -currentVelocity, 0.0f));
+            if(turningOn)
+            {
+                playerPosition = scene.camera.Position - glm::vec3(0.0f, PLAYER_EYE_HEIGHT, 0.0f);
+            }
+            else
+            {
+                scene.camera.Position = playerPosition + glm::vec3(0.0f, PLAYER_EYE_HEIGHT, 0.0f);
+            }
 
-    if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        scene.camera.MoveLocal(glm::vec3(-currentVelocity, 0.0f, 0.0f));
+            firstMouse = true;
+            thirdPersonKeyDown = true;
+        }
+    }
+    else
+    {
+        thirdPersonKeyDown = false;
+    }
 
-    if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        scene.camera.MoveLocal(glm::vec3(currentVelocity, 0.0f, 0.0f));
+    if(!thirdPersonMode)
+    {
+        if(glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+            scene.camera.MoveLocal(glm::vec3(0.0f, currentVelocity, 0.0f));
 
-    if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        scene.camera.MoveLocal(glm::vec3(0.0f, 0.0f, -currentVelocity));
+        if(glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+            scene.camera.MoveLocal(glm::vec3(0.0f, -currentVelocity, 0.0f));
 
-    if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        scene.camera.MoveLocal(glm::vec3(0.0f, 0.0f, currentVelocity));
+        if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            scene.camera.MoveLocal(glm::vec3(-currentVelocity, 0.0f, 0.0f));
+
+        if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            scene.camera.MoveLocal(glm::vec3(currentVelocity, 0.0f, 0.0f));
+
+        if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            scene.camera.MoveLocal(glm::vec3(0.0f, 0.0f, -currentVelocity));
+
+        if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            scene.camera.MoveLocal(glm::vec3(0.0f, 0.0f, currentVelocity));
+    }
+    else
+    {
+        glm::vec3 forward = scene.camera.Orientation * glm::vec3(0.0f, 0.0f, -1.0f);
+        forward.y = 0.0f;
+
+        if(glm::length(forward) < 1e-5f)
+        {
+            forward = glm::vec3(0.0f, 0.0f, -1.0f);
+        }
+
+        forward = glm::normalize(forward);
+        glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
+
+        glm::vec3 movement(0.0f);
+
+        if(glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+            movement += glm::vec3(0.0f, 1.0f, 0.0f);
+
+        if(glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+            movement += glm::vec3(0.0f, -1.0f, 0.0f);
+
+        if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            movement -= right;
+
+        if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            movement += right;
+
+        if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            movement += forward;
+
+        if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            movement -= forward;
+
+        if(glm::length(movement) > 1e-5f)
+        {
+            playerPosition += glm::normalize(movement) * currentVelocity;
+        }
+
+        UpdateThirdPersonCamera();
+    }
 
     if(glfwGetKey(window, GLFW_KEY_F11) == GLFW_PRESS)
     {
