@@ -44,6 +44,7 @@ add_executable(computer_graphics
     src/axolotl.cpp
     src/fish.cpp
     src/otter.cpp
+    src/islandPalms.cpp
     src/reef.cpp
     src/seaweed.cpp
     src/particles.cpp

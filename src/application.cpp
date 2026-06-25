@@ -188,6 +188,7 @@ void Application::ShadowPass()
     }
 
     scene.reef.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
+    scene.islandPalms.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, width, height);
@@ -298,6 +299,8 @@ void Application::Run()
         scene.monument.Draw(*shaders["object"], view, projection, scene.sun.direction, scene.camera.Position);
 
         scene.reef.Draw(*shaders["reef"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap, headlightPos, headlightColor);
+
+        scene.islandPalms.Draw(*shaders["palm"], view, projection, scene.sun.direction, scene.camera.Position);
 
         scene.axolotl.Draw(*shaders["axolotl"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap);
 
@@ -675,6 +678,7 @@ void Application::shadersInit()
     shaders["axolotl"] = new Shader("shaders/axolotl_vertex.glsl", "shaders/axolotl_fragment.glsl");
     shaders["fish"] = new Shader("shaders/fish_vertex.glsl","shaders/fish_fragment.glsl");
     shaders["otter"] = new Shader("shaders/otter_vertex.glsl","shaders/otter_fragment.glsl");
+    shaders["palm"] = new Shader("shaders/palm_vertex.glsl", "shaders/palm_fragment.glsl");
     shaders["reef"] = new Shader("shaders/reef_vertex.glsl", "shaders/reef_fragment.glsl");
     shaders["seaweed"] = new Shader("shaders/seaweed_vertex.glsl", "shaders/seaweed_fragment.glsl");
     shaders["particle"] = new Shader("shaders/particle_vertex.glsl", "shaders/particle_fragment.glsl");

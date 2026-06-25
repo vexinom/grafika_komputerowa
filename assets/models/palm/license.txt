@@ -1,0 +1,8 @@
+Model Information:
+* title:	Palm
+* source:	https://sketchfab.com/3d-models/palm-76658ea14e53475ca925c70e2b7a3f0a
+* author:	Mirbek (https://sketchfab.com/_Mirbek)
+
+Model License:
+* license type:	SKETCHFAB Standard (https://sketchfab.com/licenses)
+* requirements:	Under basic restrictions, use worldwide, on all types of media, commercially or not, and in all types of derivative works

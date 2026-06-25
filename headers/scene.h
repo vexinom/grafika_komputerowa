@@ -11,6 +11,7 @@
 #include "otter.h"
 #include "reef.h"
 #include "seaweed.h"
+#include "islandPalms.h"
 #include "particles.h"
 #include "shader.h"
 
@@ -37,6 +38,7 @@ class Scene
         Otter otter;
         Reef reef;
         Seaweed seaweed;
+        IslandPalms islandPalms;
         Particles particles;
         Sun sun;
 
