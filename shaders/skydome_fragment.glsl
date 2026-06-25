@@ -10,6 +10,10 @@ uniform sampler2D nightSkyTexture;
 uniform sampler2D cloudTexture;
 uniform float time;
 
+
+uniform float cameraY;     
+uniform float waterLevel;  
+
 void main()
 {
     float sunY = sunDirection.y;
@@ -39,6 +43,20 @@ void main()
     float gradientFactor = clamp(LocalPos.y, 0.0, 1.0);
     vec3 finalColor = mix(currentHorizon, currentZenith, gradientFactor);
 
+    float isUnderwater = step(cameraY, waterLevel); 
+    
+    float depthBelowWater = max(0.0, waterLevel - cameraY);
+    float horizonCutoff = depthBelowWater * 0.1; 
+
+    if (isUnderwater > 0.0 && LocalPos.y < horizonCutoff) 
+    {
+        float depth = horizonCutoff - LocalPos.y; 
+        vec3 deepWater = vec3(0.015, 0.11, 0.22); 
+        
+        float depthBlend = clamp(depth * 5.0, 0.0, 1.0);
+        finalColor = mix(currentHorizon, deepWater, depthBlend);
+    }
+
     vec3 sunDir = normalize(sunDirection);
     float sunAngle = max(dot(normalize(LocalPos), sunDir), 0.0);
     
@@ -58,6 +76,10 @@ void main()
     vec4 cloudSample = texture(cloudTexture, cloudUV);
     float cloudAlpha = cloudSample.a * sunVisibility;
     
+    float isBelowHorizon = step(LocalPos.y, horizonCutoff);   
+    
+    cloudAlpha *= (1.0 - (isUnderwater * isBelowHorizon));
+
     finalColor = mix(finalColor, cloudSample.rgb, cloudAlpha);
 
     FragColor = vec4(finalColor, 1.0);

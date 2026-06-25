@@ -120,8 +120,9 @@ void main()
     if (underwaterDistance > 0.0)
     {
         vec3 transmission = exp(-extinction * underwaterDistance);
-        float density = 0.0065 * fogDensity;
+        float density = 0.015 * fogDensity;
         float scatter = 1.0 - exp(-underwaterDistance * density);
+        if (isSky) scatter = 1.0;
         color = color * transmission + deepWater * scatter;
     }
 

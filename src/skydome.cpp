@@ -125,7 +125,8 @@ void Skydome::Init()
     glBindVertexArray(0);
 }
 
-void Skydome::Draw(Shader& shader, const glm::mat4& viewProjection, const glm::vec3& cameraPosition, const glm::vec3& sunDirection, float time)
+void Skydome::Draw(Shader& shader, const glm::mat4& viewProjection, const glm::vec3& cameraPosition, 
+    const glm::vec3& sunDirection, float time, float waterLevel)
 {
     shader.Use();
     glDepthFunc(GL_LEQUAL);
@@ -139,6 +140,11 @@ void Skydome::Draw(Shader& shader, const glm::mat4& viewProjection, const glm::v
     shader.SetMat4("viewProjection", viewProjection);
     shader.SetMat4("model", model);
     shader.SetVec3("sunDirection", sunDirection);
+
+    shader.SetFloat("cameraY", cameraPosition.y);
+    shader.SetFloat("waterLevel", waterLevel);
+
+    
     shader.SetInt("nightSkyTexture", 0);
     
     glActiveTexture(GL_TEXTURE0);

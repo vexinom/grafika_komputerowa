@@ -14,6 +14,7 @@ private:
 
 public:
     void Init();
-    void Draw(Shader& shader, const glm::mat4& viewProjection, const glm::vec3& cameraPosition, const glm::vec3& sunDirection, float time);
+    void Draw(Shader& shader, const glm::mat4& viewProjection, const glm::vec3& cameraPosition, 
+        const glm::vec3& sunDirection, float time, float waterLevel);
 };
 

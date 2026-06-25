@@ -328,7 +328,7 @@ void Application::Run()
         if (useCubemap)
             scene.cubemap.Draw(*shaders["cubemap"], view, projection);
         else
-            scene.skydome.Draw(*shaders["skydome"], viewProjection, scene.camera.Position, scene.sun.direction, currentFrame);
+            scene.skydome.Draw(*shaders["skydome"], viewProjection, scene.camera.Position, scene.sun.direction, currentFrame, scene.watermesh.waterLevel);
         glEnable(GL_CULL_FACE);
 
         glDepthMask(GL_TRUE);
@@ -751,7 +751,7 @@ void Application::drawReflectionsReflaction()
     if (useCubemap)
         scene.cubemap.Draw(*shaders["cubemap"], reflectView, projection);
     else
-        scene.skydome.Draw(*shaders["skydome"], reflectViewProj, scene.camera.Position, scene.sun.direction, glfwGetTime());
+        scene.skydome.Draw(*shaders["skydome"], reflectViewProj, scene.camera.Position, scene.sun.direction, glfwGetTime(), scene.watermesh.waterLevel);
 
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
