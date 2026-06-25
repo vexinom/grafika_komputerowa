@@ -12,7 +12,7 @@ namespace config
     const float NEAR_PLANE = 0.1f;
     const float LOD_1_DISTANCE = 350.0f;
     const float LOD_2_DISTANCE = 600.0f;
-    const int WATER_CHUNK_VIEW_DISTANCE = 8;
+    const int WATER_CHUNK_VIEW_DISTANCE = 12;
     const int HEIGHTMAP_SIZE = 4096;
 
 }

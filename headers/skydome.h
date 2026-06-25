@@ -9,6 +9,7 @@ private:
     unsigned VAO, VBO, EBO;
     unsigned indexCount;
     unsigned int textureID;
+    unsigned int texture2ID;
     unsigned int shaderProgram;
 
 public:

@@ -104,6 +104,24 @@ void Skydome::Init()
     }
     stbi_image_free(data);
 
+
+    glGenTextures(1, &texture2ID);
+    glBindTexture(GL_TEXTURE_2D, texture2ID);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    unsigned char *data2 = stbi_load("assets/skydome2.png", &width, &height, &nrChannels, 0);
+    if (data)
+    {
+        GLenum format = (nrChannels == 4) ? GL_RGBA : GL_RGB;
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data2);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    stbi_image_free(data2);
+
     glBindVertexArray(0);
 }
 
@@ -122,8 +140,15 @@ void Skydome::Draw(Shader& shader, const glm::mat4& viewProjection, const glm::v
     shader.SetMat4("model", model);
     shader.SetVec3("sunDirection", sunDirection);
     shader.SetInt("nightSkyTexture", 0);
+    
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textureID);
+
+    shader.SetInt("cloudTexture", 1);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, texture2ID);
+
+    shader.SetFloat("time", time);
 
 
     glBindVertexArray(VAO);
