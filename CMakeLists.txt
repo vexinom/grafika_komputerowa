@@ -43,6 +43,7 @@ add_executable(computer_graphics
     src/monument.cpp
     src/axolotl.cpp
     src/fish.cpp
+    src/otter.cpp
     src/reef.cpp
     src/seaweed.cpp
     src/particles.cpp

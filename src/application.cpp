@@ -182,6 +182,7 @@ void Application::Run()
 
         scene.axolotl.Update(deltaTime);
         scene.fish.Update(deltaTime, scene.camera.Position);
+        scene.otter.Update(deltaTime, scene.camera.Position, scene.fish);
         scene.particles.Update(deltaTime, scene.camera.Position, currentFrame, scene.current);
 
         glm::vec3 headlightPos = scene.axolotl.HeadlightPosition();
@@ -218,7 +219,9 @@ void Application::Run()
         scene.axolotl.Draw(*shaders["axolotl"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap);
 
         scene.fish.Draw(*shaders["fish"], view, projection, scene.sun.direction, scene.camera.Position);
-        
+
+        scene.otter.Draw(*shaders["otter"], view, projection, scene.sun.direction, scene.camera.Position);
+
         if (useCubemap)
             scene.cubemap.Draw(*shaders["cubemap"], view, projection);
         else
@@ -401,6 +404,19 @@ void Application::Input_Events()
     if(glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
         scene.axolotl.speedScale = glm::clamp(scene.axolotl.speedScale - deltaTime, 0.2f, 4.0f);
 
+    // ---- Interaction 7: cycle otter animation clips (O), back to behaviour state machine (P) ----
+    if(glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
+    {
+        if(!otterCycleKeyDown) { scene.otter.CycleClip(); otterCycleKeyDown = true; }
+    }
+    else otterCycleKeyDown = false;
+
+    if(glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
+    {
+        if(!otterStopKeyDown) { scene.otter.StopCycle(); otterStopKeyDown = true; }
+    }
+    else otterStopKeyDown = false;
+
     // ---- Interaction 6: aim + left-click to poke a creature (ray picking) ----
     if(glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
     {
@@ -454,6 +470,7 @@ void Application::shadersInit()
     shaders["depthobject"] = new Shader("shaders/depth_object_vertex.glsl", "shaders/depth_fragment.glsl");
     shaders["axolotl"] = new Shader("shaders/axolotl_vertex.glsl", "shaders/axolotl_fragment.glsl");
     shaders["fish"] = new Shader("shaders/fish_vertex.glsl","shaders/fish_fragment.glsl");
+    shaders["otter"] = new Shader("shaders/otter_vertex.glsl","shaders/otter_fragment.glsl");
     shaders["reef"] = new Shader("shaders/reef_vertex.glsl", "shaders/reef_fragment.glsl");
     shaders["seaweed"] = new Shader("shaders/seaweed_vertex.glsl", "shaders/seaweed_fragment.glsl");
     shaders["particle"] = new Shader("shaders/particle_vertex.glsl", "shaders/particle_fragment.glsl");

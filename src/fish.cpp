@@ -2,11 +2,10 @@
 #include "objloader.h"
 #include <glad/glad.h>
 #include <glm/gtc/matrix_transform.hpp>
-#include "stb_image.h"            // tylko deklaracje - implementacja jest w worldmesh.cpp
+#include "stb_image.h"
 #include <cstdlib>
 #include <cmath>
 
-// ----- pomocnicze losowanie -----
 static float frand() { return (float)rand() / (float)RAND_MAX; }
 static float frand(float a, float b) { return a + (b - a) * frand(); }
 static glm::vec3 randUnit()
@@ -22,10 +21,10 @@ static glm::vec3 limit(const glm::vec3& v, float maxLen)
     return (l > maxLen && l > 1e-5f) ? v * (maxLen / l) : v;
 }
 
-static const int   SCHOOLS    = 4;        // liczba lawic
-static const int   PER_SCHOOL = 60;       // ryb na lawice  (4*60 = 240 ryb)
-static const float WATER_LEVEL = 400.0f;  // poziom powierzchni wody (config::WATERLEVEL)
-static const float Y_SCALE     = 500.0f;  // config::Y_SCALE_TERRAIN
+static const int   SCHOOLS    = 4;
+static const int   PER_SCHOOL = 60;
+static const float WATER_LEVEL = 400.0f;
+static const float Y_SCALE     = 500.0f;
 
 float Fish::SeabedHeight(float x, float z) const
 {
@@ -89,7 +88,7 @@ void Fish::Init()
     schoolCenters.clear();
     for (int s = 0; s < SCHOOLS; s++)
     {
-        float fy = SeabedHeight(spots[s].x, spots[s].y);   // realne dno
+        float fy = SeabedHeight(spots[s].x, spots[s].y);
         float cy = glm::clamp(fy + 45.0f, fy + 20.0f, WATER_LEVEL - 30.0f);
         schoolCenters.push_back(glm::vec3(spots[s].x, cy, spots[s].y));
     }
@@ -97,6 +96,8 @@ void Fish::Init()
     srand(2024);
     boids.resize(total);
     models.resize(total);
+    eaten.assign(total, 0);
+    respawn.assign(total, 0.0f);
     for (int s = 0; s < SCHOOLS; s++)
         for (int k = 0; k < PER_SCHOOL; k++)
         {
@@ -112,6 +113,21 @@ void Fish::Update(float dt, const glm::vec3& cameraPos)
     if (dt > 0.05f) dt = 0.05f;
     animTime += dt;
 
+    for (size_t i = 0; i < boids.size(); i++)
+    {
+        if (eaten[i])
+        {
+            respawn[i] -= dt;
+            if (respawn[i] <= 0.0f)
+            {
+                int s = (int)i / PER_SCHOOL;
+                eaten[i] = 0;
+                boids[i].pos = schoolCenters[s] + randUnit() * frand(0.0f, schoolRadius);
+                boids[i].vel = randUnit() * frand(18.0f, 30.0f);
+            }
+        }
+    }
+
     const float perceptionR = 130.0f;
     const float sepR        = 60.0f;
     const float maxSpeed    = 50.0f;
@@ -126,6 +142,7 @@ void Fish::Update(float dt, const glm::vec3& cameraPos)
 
         for (int i = base; i < base + PER_SCHOOL; i++)
         {
+            if (eaten[i]) continue;
             glm::vec3 pi = boids[i].pos;
             glm::vec3 vi = boids[i].vel;
 
@@ -134,7 +151,7 @@ void Fish::Update(float dt, const glm::vec3& cameraPos)
 
             for (int j = base; j < base + PER_SCHOOL; j++)
             {
-                if (i == j) continue;
+                if (i == j || eaten[j]) continue;
                 glm::vec3 d = pi - boids[j].pos;
                 float dist = glm::length(d);
                 if (dist < perceptionR && dist > 1e-4f)
@@ -171,9 +188,17 @@ void Fish::Update(float dt, const glm::vec3& cameraPos)
             if (cd < avoidRadius && cd > 1e-4f)
                 acc += (away / cd) * maxForce * (3.0f + 6.0f * (1.0f - cd / avoidRadius));
 
+            if (predatorActive)
+            {
+                glm::vec3 awayP = pi - predatorPos;
+                float pd = glm::length(awayP);
+                if (pd < predatorRadius && pd > 1e-4f)
+                    acc += (awayP / pd) * maxForce * (3.5f + 7.0f * (1.0f - pd / predatorRadius));
+            }
+
             float floorY = SeabedHeight(pi.x, pi.z);
-            float lowY   = floorY + 18.0f;             // pas nad piaskiem
-            float highY  = floorY + 130.0f;            // sufit lawicy nad dnem
+            float lowY   = floorY + 18.0f;
+            float highY  = floorY + 130.0f;
             if (highY > WATER_LEVEL - 10.0f) highY = WATER_LEVEL - 10.0f;
             if (highY < lowY + 8.0f)         highY = lowY + 8.0f;
             if (pi.y < lowY)  acc += glm::vec3(0,  1, 0) * maxForce * 2.5f;
@@ -196,6 +221,19 @@ void Fish::Update(float dt, const glm::vec3& cameraPos)
                 if (vn < 0.0f) vi -= nrm * vn;
             }
 
+            if (predatorActive)
+            {
+                glm::vec3 awP = np - predatorPos;
+                float adp = glm::length(awP);
+                if (adp < predatorRadius && adp > 1e-4f)
+                {
+                    glm::vec3 nrm = awP / adp;
+                    np = predatorPos + nrm * predatorRadius;
+                    float vn = glm::dot(vi, nrm);
+                    if (vn < 0.0f) vi -= nrm * vn;
+                }
+            }
+
             float fY = SeabedHeight(np.x, np.z);
             float hardLow  = fY + 8.0f;
             float hardHigh = fY + 160.0f;
@@ -211,6 +249,7 @@ void Fish::Update(float dt, const glm::vec3& cameraPos)
 
     for (size_t i = 0; i < boids.size(); i++)
     {
+        if (eaten[i]) { models[i] = glm::scale(glm::mat4(1.0f), glm::vec3(0.0f)); continue; }
         glm::vec3 f = glm::normalize(boids[i].vel);
         glm::vec3 right = glm::cross(glm::vec3(0, 1, 0), f);
         float rl = glm::length(right);
@@ -221,7 +260,6 @@ void Fish::Update(float dt, const glm::vec3& cameraPos)
         rot[0] = glm::vec4(right, 0.0f);
         rot[1] = glm::vec4(up,    0.0f);
         rot[2] = glm::vec4(f,     0.0f);
-        // jesli ryba plynie ogonem do przodu: rot = rot * glm::rotate(mat4(1), radians(180.f), vec3(0,1,0));
 
         glm::mat4 M = glm::translate(glm::mat4(1.0f), boids[i].pos) * rot;
         M = glm::scale(M, glm::vec3(fishScale));
@@ -252,4 +290,40 @@ void Fish::Draw(Shader& shader, const glm::mat4& view, const glm::mat4& projecti
     glBindVertexArray(VAO);
     glDrawElementsInstanced(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0, (GLsizei)boids.size());
     glBindVertexArray(0);
+}
+
+void Fish::SetPredator(const glm::vec3& pos, float radius)
+{
+    predatorPos = pos;
+    predatorRadius = radius;
+    predatorActive = true;
+}
+
+glm::vec3 Fish::FishPos(int i) const
+{
+    return (i >= 0 && i < (int)boids.size()) ? boids[i].pos : glm::vec3(0.0f);
+}
+
+bool Fish::FishAlive(int i) const
+{
+    return i >= 0 && i < (int)boids.size() && !eaten[i];
+}
+
+void Fish::EatFish(int i)
+{
+    if (i >= 0 && i < (int)boids.size() && !eaten[i]) { eaten[i] = 1; respawn[i] = 12.0f; }
+}
+
+int Fish::FindNearestFish(const glm::vec3& from, float maxDist, glm::vec3& outPos) const
+{
+    int best = -1;
+    float bd = maxDist * maxDist;
+    for (size_t i = 0; i < boids.size(); i++)
+    {
+        if (eaten[i]) continue;
+        glm::vec3 d = boids[i].pos - from;
+        float q = glm::dot(d, d);
+        if (q < bd) { bd = q; best = (int)i; outPos = boids[i].pos; }
+    }
+    return best;
 }

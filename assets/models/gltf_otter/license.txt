@@ -1,0 +1,11 @@
+Model Information:
+* title:	Animated American Mink – 3D Animal Model
+* source:	https://sketchfab.com/3d-models/animated-american-mink-3d-animal-model-5652b15ab077432995ef40c3b6e560db
+* author:	AnimalMesh 3D (https://sketchfab.com/AnimalMesh3D)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Animated American Mink – 3D Animal Model" (https://sketchfab.com/3d-models/animated-american-mink-3d-animal-model-5652b15ab077432995ef40c3b6e560db) by AnimalMesh 3D (https://sketchfab.com/AnimalMesh3D) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

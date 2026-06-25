@@ -12,10 +12,16 @@ public:
 
     glm::vec3 Position() const { return schoolCenters.empty() ? glm::vec3(0.0f) : schoolCenters[0]; }
 
+    void SetPredator(const glm::vec3& pos, float radius);
+    int  FindNearestFish(const glm::vec3& from, float maxDist, glm::vec3& outPos) const;
+    glm::vec3 FishPos(int index) const;
+    bool FishAlive(int index) const;
+    void EatFish(int index);
+
 private:
     struct Boid { glm::vec3 pos; glm::vec3 vel; };
 
-    float SeabedHeight(float x, float z) const;   
+    float SeabedHeight(float x, float z) const;
 
     std::vector<Boid>      boids;
     std::vector<glm::mat4> models;
@@ -33,4 +39,10 @@ private:
     int hmW = 0, hmH = 0;
 
     float schoolRadius = 150.0f;
+
+    std::vector<char>  eaten;
+    std::vector<float> respawn;
+    glm::vec3 predatorPos    = glm::vec3(1e9f);
+    float     predatorRadius = 0.0f;
+    bool      predatorActive = false;
 };

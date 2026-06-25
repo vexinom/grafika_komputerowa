@@ -12,6 +12,7 @@ void Scene::Init()
     monument.Init(1320.0f, 1700.0f, -10.0f, 50.0f);   // ruined pillar on the shelf
     axolotl.Init();
     fish.Init();
+    otter.Init();
     reef.Init();
     particles.Init(2400);
 }

@@ -8,6 +8,7 @@
 #include "monument.h"
 #include "axolotl.h"
 #include "fish.h"
+#include "otter.h"
 #include "reef.h"
 #include "seaweed.h"
 #include "particles.h"
@@ -33,6 +34,7 @@ class Scene
         Monument monument;
         Axolotl axolotl;
         Fish fish;
+        Otter otter;
         Reef reef;
         Seaweed seaweed;
         Particles particles;
