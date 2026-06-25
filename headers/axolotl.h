@@ -27,6 +27,11 @@ class Axolotl
         void Update(float dt);
         void Draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection, const glm::vec3& sunDirection, const glm::vec3& cameraPos, const glm::mat4& lightSpaceMatrix, unsigned int shadowMap);
         void DrawDepth(Shader& shader, const glm::mat4& lightSpaceMatrix);
+
+        glm::mat4 ModelMatrix(const glm::vec3& position, const glm::vec3& forward, float scale) const;
+        void DrawSingle(Shader& shader, const glm::mat4& view, const glm::mat4& projection, const glm::vec3& sunDirection, const glm::vec3& cameraPos, const glm::mat4& lightSpaceMatrix, unsigned int shadowMap, const glm::mat4& model);
+        void DrawSingleDepth(Shader& shader, const glm::mat4& lightSpaceMatrix, const glm::mat4& model);
+        
         glm::vec3 NearestTo(const glm::vec3& point) const;
         glm::vec3 HeadlightPosition() const;
 

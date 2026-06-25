@@ -34,6 +34,12 @@ class Application
         void openGLDisableMouse();
         void shadersInit();
 
+        void UpdateViewport(int framebufferWidth, int framebufferHeight);
+        void ToggleFullscreen();
+        void UpdateThirdPersonCamera();
+        glm::mat4 PlayerModelMatrix() const;
+        static void FramebufferSizeCallback(GLFWwindow* window, int framebufferWidth, int framebufferHeight);
+
         Application(int _width, int _height)
         {
             height = _height;
@@ -67,4 +73,16 @@ class Application
         bool otterStopKeyDown = false;
         bool teleportKeyDown = false;
         bool teleportToFish = false;   // false: nastepny H -> axolotl, true: nastepny H -> ryba
+
+        bool fullscreenKeyDown = false;
+        bool isFullscreen = false;
+
+        bool thirdPersonMode = false;
+        bool thirdPersonKeyDown = false;
+        glm::vec3 playerPosition = glm::vec3(1024.0f, 42.0f, 1900.0f);
+
+        int windowedPosX = 100;
+        int windowedPosY = 100;
+        int windowedWidth = 1280;
+        int windowedHeight = 720;
 };

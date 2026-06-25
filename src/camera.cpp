@@ -1,4 +1,5 @@
 # include "camera.h"
+#include "config.h"
 #include <cmath>
 
 Camera::Camera()
@@ -7,7 +8,7 @@ Camera::Camera()
     Aspect = 800.0f / 600.0f;
 
     NearPlane = 0.1f;
-    FarPlane = 4000.0f;
+    FarPlane = config::FAR_PLANE;
 
     // spawn on the shallow shelf among the reef, looking across it toward the deep drop-off
     SetView(glm::vec3(1024.0f, 60.0f, 1900.0f), 0.0f, glm::radians(-7.0f));
