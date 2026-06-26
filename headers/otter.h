@@ -35,6 +35,7 @@ private:
     void SampleClip(const Player& p, std::vector<float>& out) const;
     void EnterState(State s);
     void PickWanderTarget(bool wide);
+    void PickWanderTargetAround(const glm::vec3& center);
     float frand(float a, float b);
 
     unsigned int VAO=0, VBO=0, EBO=0;
@@ -52,13 +53,19 @@ private:
     std::vector<float> bufCur, bufPrev, jointUpload;
 
     State state = WANDER;
-    int   wanderClip=0, fastClip=0, attackClip=0, idleClip=0;
+    int   wanderClip=0, fastClip=0, attackClip=0, idleClip=0, eatClip=0;
     float stateTimer = 0.0f;
 
     float hunger = 100.0f;
     int   preyIndex = -1;
     glm::vec3 preyPos = glm::vec3(0.0f);
     float attackTimer = 0.0f;
+
+    // Attack sequence: phase 0 = lunge onto prey, phase 1 = eat in place.
+    int       attackPhase = 0;
+    float     eatTimer   = 0.0f;
+    glm::vec3 strikePoint = glm::vec3(0.0f);
+    glm::vec3 eatAnchor   = glm::vec3(0.0f);
 
     int   manualClip = -1;
 

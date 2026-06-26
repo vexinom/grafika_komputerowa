@@ -26,6 +26,10 @@ static const int   PER_SCHOOL = 60;
 static const float WATER_LEVEL = 400.0f;
 static const float Y_SCALE     = 500.0f;
 
+// Hard on-map bounds (same box the otter swims in) so a fish can never leave the map.
+static const float FISH_MINX = 650.0f,  FISH_MAXX = 3550.0f;
+static const float FISH_MINZ = 450.0f,  FISH_MAXZ = 2950.0f;
+
 float Fish::SeabedHeight(float x, float z) const
 {
     float fw = hmW ? (float)hmW : 4096.0f, fh = hmH ? (float)hmH : 4096.0f;
@@ -167,12 +171,15 @@ void Fish::Update(float dt, const glm::vec3& cameraPos)
             if (ns > 0)
             {
                 sep /= (float)ns;
-                acc += limit(glm::normalize(sep) * maxSpeed - vi, maxForce) * 1.7f;
+                // normalize(0) is NaN; guard against a zero-sum neighbourhood
+                glm::vec3 sd = (glm::length(sep) > 1e-4f) ? glm::normalize(sep) : glm::vec3(0.0f);
+                acc += limit(sd * maxSpeed - vi, maxForce) * 1.7f;
             }
             if (na > 0)
             {
                 ali /= (float)na;
-                acc += limit(glm::normalize(ali) * maxSpeed - vi, maxForce) * 1.0f;
+                glm::vec3 ad = (glm::length(ali) > 1e-4f) ? glm::normalize(ali) : glm::vec3(0.0f);
+                acc += limit(ad * maxSpeed - vi, maxForce) * 1.0f;
                 coh = coh / (float)na - pi;
                 if (glm::length(coh) > 1e-4f)
                     acc += limit(glm::normalize(coh) * maxSpeed - vi, maxForce) * 0.9f;
@@ -211,28 +218,9 @@ void Fish::Update(float dt, const glm::vec3& cameraPos)
 
             glm::vec3 np = pi + vi * dt;
 
-            glm::vec3 aw = np - cameraPos;
-            float ad = glm::length(aw);
-            if (ad < avoidRadius && ad > 1e-4f)
-            {
-                glm::vec3 nrm = aw / ad;
-                np = cameraPos + nrm * avoidRadius;
-                float vn = glm::dot(vi, nrm);
-                if (vn < 0.0f) vi -= nrm * vn;
-            }
-
-            if (predatorActive)
-            {
-                glm::vec3 awP = np - predatorPos;
-                float adp = glm::length(awP);
-                if (adp < predatorRadius && adp > 1e-4f)
-                {
-                    glm::vec3 nrm = awP / adp;
-                    np = predatorPos + nrm * predatorRadius;
-                    float vn = glm::dot(vi, nrm);
-                    if (vn < 0.0f) vi -= nrm * vn;
-                }
-            }
+            // The camera and predator only steer the fish through the speed-capped
+            // soft forces above. No hard position snap onto a shell -- that teleport
+            // was what dragged fish across the map while the otter/camera moved.
 
             float fY = SeabedHeight(np.x, np.z);
             float hardLow  = fY + 8.0f;
@@ -242,6 +230,16 @@ void Fish::Update(float dt, const glm::vec3& cameraPos)
             if (np.y < hardLow)  { np.y = hardLow;  if (vi.y < 0) vi.y = 0; }
             if (np.y > hardHigh) { np.y = hardHigh; if (vi.y > 0) vi.y = 0; }
 
+            np.x = glm::clamp(np.x, FISH_MINX, FISH_MAXX);
+            np.z = glm::clamp(np.z, FISH_MINZ, FISH_MAXZ);
+
+            // safety net: respawn rather than vanish if a position ever goes non-finite
+            if (!(std::isfinite(np.x) && std::isfinite(np.y) && std::isfinite(np.z)))
+            {
+                np = center + randUnit() * frand(0.0f, schoolRadius);
+                vi = randUnit() * frand(18.0f, 30.0f);
+            }
+
             boids[i].vel = vi;
             boids[i].pos = np;
         }
@@ -250,7 +248,9 @@ void Fish::Update(float dt, const glm::vec3& cameraPos)
     for (size_t i = 0; i < boids.size(); i++)
     {
         if (eaten[i]) { models[i] = glm::scale(glm::mat4(1.0f), glm::vec3(0.0f)); continue; }
-        glm::vec3 f = glm::normalize(boids[i].vel);
+        glm::vec3 f = (glm::length(boids[i].vel) > 1e-4f)
+                          ? glm::normalize(boids[i].vel)
+                          : glm::vec3(0.0f, 0.0f, 1.0f);
         glm::vec3 right = glm::cross(glm::vec3(0, 1, 0), f);
         float rl = glm::length(right);
         right = (rl > 1e-4f) ? right / rl : glm::vec3(1, 0, 0);

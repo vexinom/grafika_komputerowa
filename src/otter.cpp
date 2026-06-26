@@ -104,6 +104,7 @@ void Otter::Init()
     fastClip   = FindClip("swim_fwd_surface_fast");
     attackClip = FindClip("swim_surface_dive_fwd");
     idleClip   = FindClip("swim_surface_idle");
+    eatClip    = FindClip("idle_eat_01");
 
     jointUpload.assign(jointCount * 16, 0.0f);
     bufCur.assign(jointCount * 16, 0.0f);
@@ -132,6 +133,16 @@ void Otter::PickWanderTarget(bool wide)
         float r = frand(120.0f, 480.0f);
         wanderTarget = HOME + glm::vec3(cosf(a) * r, frand(-70.0f, 70.0f), sinf(a) * r);
     }
+    wanderTarget.x = glm::clamp(wanderTarget.x, WORLD_MINX, WORLD_MAXX);
+    wanderTarget.y = glm::clamp(wanderTarget.y, WORLD_MINY, WORLD_MAXY);
+    wanderTarget.z = glm::clamp(wanderTarget.z, WORLD_MINZ, WORLD_MAXZ);
+}
+
+void Otter::PickWanderTargetAround(const glm::vec3& center)
+{
+    float a = frand(0.0f, 6.2831853f);
+    float r = frand(150.0f, 420.0f);
+    wanderTarget = center + glm::vec3(cosf(a) * r, frand(-60.0f, 60.0f), sinf(a) * r);
     wanderTarget.x = glm::clamp(wanderTarget.x, WORLD_MINX, WORLD_MAXX);
     wanderTarget.y = glm::clamp(wanderTarget.y, WORLD_MINY, WORLD_MAXY);
     wanderTarget.z = glm::clamp(wanderTarget.z, WORLD_MINZ, WORLD_MAXZ);
@@ -171,7 +182,13 @@ void Otter::EnterState(State s)
     state = s;
     stateTimer = 0.0f;
     if (s == WANDER)      SetClip(wanderClip);
-    else if (s == ATTACK) { SetClip(attackClip); attackTimer = 0.7f; }
+    else if (s == ATTACK)
+    {
+        SetClip(attackClip);
+        attackPhase = 0;
+        attackTimer = 0.55f;
+        strikePoint = preyPos;
+    }
     else                  SetClip(fastClip);
 }
 
@@ -244,21 +261,41 @@ void Otter::Update(float dt, const glm::vec3& cameraPos, Fish& fish)
         }
         else // ATTACK
         {
-            speed = HUNT_SPEED * 0.5f;
-            if (fish.FishAlive(preyIndex))
+            if (attackPhase == 0)
             {
-                preyPos = fish.FishPos(preyIndex);
-                glm::vec3 to = preyPos - position;
-                if (glm::length(to) > 1e-3f) desiredVel = glm::normalize(to) * speed;
+                if (fish.FishAlive(preyIndex)) strikePoint = fish.FishPos(preyIndex);
+                glm::vec3 to = strikePoint - position;
+                float d = glm::length(to);
+                if (d > 1e-3f)
+                {
+                    float lungeSpeed = glm::min(HUNT_SPEED, d / 0.15f + 25.0f);
+                    desiredVel = (to / d) * lungeSpeed;
+                }
+                attackTimer -= dt;
+                if (d < 16.0f || attackTimer <= 0.0f)
+                {
+                    if (fish.FishAlive(preyIndex)) fish.EatFish(preyIndex);
+                    attackPhase = 1;
+                    eatTimer = 1.5f;
+                    SetClip(eatClip);
+                    velocity = glm::vec3(0.0f);
+                    eatAnchor = position;         // lock the spot it caught the fish
+                }
             }
-            attackTimer -= dt;
-            if (attackTimer <= 0.0f)
+            else
             {
-                if (fish.FishAlive(preyIndex)) fish.EatFish(preyIndex);
-                preyIndex = -1;
-                hunger = HUNGER_MAX;
-                EnterState(WANDER);
-                PickWanderTarget(false);
+                // frozen in place for the whole meal
+                desiredVel = glm::vec3(0.0f);
+                velocity   = glm::vec3(0.0f);
+                position   = eatAnchor;
+                eatTimer -= dt;
+                if (eatTimer <= 0.0f)
+                {
+                    preyIndex = -1;
+                    hunger = HUNGER_MAX;
+                    EnterState(WANDER);
+                    PickWanderTargetAround(position);
+                }
             }
         }
 
@@ -276,10 +313,11 @@ void Otter::Update(float dt, const glm::vec3& cameraPos, Fish& fish)
         if (vlen > 3.0f)
             facing = glm::normalize(glm::mix(facing, velocity / vlen, glm::clamp(dt * 5.0f, 0.0f, 1.0f)));
 
-        // Push the fish away hard only while cruising; once chasing, drop the scare
-        // radius below ATTACK_RADIUS so the prey stays catchable instead of being
-        // shoved out of reach.
-        float predR = (state == CHASE || state == ATTACK) ? HUNT_PRED_RADIUS : WANDER_PRED_RADIUS;
+        // No scare field while attacking/eating: catch and eat in place without
+        // shoving the rest of the school around.
+        float predR = (state == ATTACK) ? 0.0f
+                    : (state == CHASE)  ? HUNT_PRED_RADIUS
+                                        : WANDER_PRED_RADIUS;
         fish.SetPredator(position, predR);
     }
 
