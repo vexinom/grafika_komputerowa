@@ -19,9 +19,11 @@ class Reef
 
     private:
         struct Mesh { unsigned int VAO = 0, VBO = 0, EBO = 0; int indexCount = 0;
-                      unsigned int albedoTex = 0, normalTex = 0, ormTex = 0; };
+                      unsigned int albedoTex = 0, normalTex = 0, ormTex = 0; int cat = 0; };
         struct Instance { glm::mat4 model; glm::vec3 pos; glm::vec3 tint; float rough; float metal; int mesh; };
+        struct HeroInstance { glm::mat4 model; glm::vec3 pos; glm::vec3 tint; int mesh; };
 
         std::vector<Mesh> meshes;
         std::vector<Instance> instances;
+        std::vector<HeroInstance> heroes;
 };

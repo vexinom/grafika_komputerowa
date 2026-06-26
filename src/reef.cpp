@@ -239,6 +239,7 @@ void Reef::Init()
         m.albedoTex = set[0]; m.normalTex = set[1]; m.ormTex = set[2];
 
         int cat = catFromMaterial(data.material);
+        m.cat = cat;
         int mi = (int)meshes.size();
         meshes.push_back(m);
         meshCat.push_back(cat); meshCenter.push_back(data.center); meshMinY.push_back(data.minY); meshInvExt.push_back(data.invExtent);
@@ -283,11 +284,11 @@ void Reef::Init()
         return s * 500.0f;
     };
 
-    int weight[NUM_CAT] = { 0 };
-    weight[ROCK] = 10; weight[CORAL_TABLE] = 16; weight[CORAL_PLATE] = 8;
-    weight[CORAL_WHIP] = 18; weight[FEATHER] = 6; weight[URCHIN] = 14; weight[SHELL] = 34;
+    int baseWeight[NUM_CAT] = { 0 };
+    baseWeight[ROCK] = 16; baseWeight[CORAL_TABLE] = 24; baseWeight[CORAL_PLATE] = 14;
+    baseWeight[CORAL_WHIP] = 26; baseWeight[FEATHER] = 10; baseWeight[URCHIN] = 24; baseWeight[SHELL] = 46;
     int weightTotal = 0;
-    for (int c = 0; c < NUM_CAT; c++) if (!catMeshes[c].empty()) weightTotal += weight[c];
+    for (int c = 0; c < NUM_CAT; c++) if (!catMeshes[c].empty()) weightTotal += baseWeight[c];
     if (weightTotal == 0) { if (hm) stbi_image_free(hm); return; }
 
     srand(2024);
@@ -298,7 +299,7 @@ void Reef::Init()
     std::vector<Cl> clusters;
     {
         int a = 0;
-        while ((int)clusters.size() < 70 && a < 70 * 90)
+        while ((int)clusters.size() < 150 && a < 150 * 110)
         {
             a++;
             float cx = frand(120.0f, mapW - 120.0f), cz = frand(120.0f, mapH - 120.0f);
@@ -308,14 +309,80 @@ void Reef::Init()
         }
     }
 
-    const int target = 620;
+    // macro gardens: large biome anchors (plateaus of shells/urchins, coral gardens, rocky deep fields)
+    struct Macro { glm::vec2 p; float y; int mode; float radius; };
+    std::vector<Macro> macros;
+    {
+        int a = 0;
+        while ((int)macros.size() < 36 && a < 36 * 120)
+        {
+            a++;
+            float cx = frand(130.0f, mapW - 130.0f), cz = frand(130.0f, mapH - 130.0f);
+            float fy = seabed(cx, cz);
+            if (fy > 65.0f || fy < -610.0f) continue;
+            int mode = rand() % 4;
+            float radius = frand(120.0f, 290.0f);
+            macros.push_back({ glm::vec2(cx, cz), fy, mode, radius });
+        }
+    }
+
+    const int target = 1900;
     int attempts = 0;
     while ((int)instances.size() < target && attempts < target * 90)
     {
         attempts++;
-        int r = rand() % weightTotal;
+        int dynamicWeight[NUM_CAT];
+        for (int c = 0; c < NUM_CAT; ++c) dynamicWeight[c] = baseWeight[c];
+
+        glm::vec2 macroPos(0.0f);
+        float macroRad = 0.0f;
+        int macroMode = -1;
+        if (!macros.empty() && frand() < 0.7f)
+        {
+            const Macro& m = macros[rand() % macros.size()];
+            macroPos = m.p;
+            macroRad = m.radius;
+            macroMode = m.mode;
+
+            // 0: coral garden, 1: shell/urchin plain, 2: rocky outcrop, 3: feather+whip meadow
+            if (macroMode == 0)
+            {
+                dynamicWeight[CORAL_TABLE] += 26;
+                dynamicWeight[CORAL_PLATE] += 20;
+                dynamicWeight[CORAL_WHIP] += 12;
+                dynamicWeight[SHELL] += 10;
+            }
+            else if (macroMode == 1)
+            {
+                dynamicWeight[SHELL] += 54;
+                dynamicWeight[URCHIN] += 28;
+                dynamicWeight[FEATHER] += 10;
+            }
+            else if (macroMode == 2)
+            {
+                dynamicWeight[ROCK] += 34;
+                dynamicWeight[CORAL_TABLE] += 10;
+                dynamicWeight[URCHIN] += 14;
+            }
+            else
+            {
+                dynamicWeight[CORAL_WHIP] += 30;
+                dynamicWeight[FEATHER] += 24;
+                dynamicWeight[URCHIN] += 8;
+                dynamicWeight[SHELL] += 8;
+            }
+        }
+
+        int dynTotal = 0;
+        for (int c = 0; c < NUM_CAT; ++c) if (!catMeshes[c].empty()) dynTotal += dynamicWeight[c];
+        int r = (dynTotal > 0) ? (rand() % dynTotal) : 0;
         int cat = SHELL, acc = 0;
-        for (int c = 0; c < NUM_CAT; c++) { if (catMeshes[c].empty()) continue; acc += weight[c]; if (r < acc) { cat = c; break; } }
+        for (int c = 0; c < NUM_CAT; c++)
+        {
+            if (catMeshes[c].empty()) continue;
+            acc += dynamicWeight[c];
+            if (r < acc) { cat = c; break; }
+        }
 
         float lo, hi; bandFor(cat, lo, hi);
 
@@ -324,12 +391,19 @@ void Reef::Init()
         bool ok = false;
         for (int tryi = 0; tryi < 8 && !ok; tryi++)
         {
-            if (!clusters.empty() && frand() < 0.85f)
+            if (macroMode >= 0 && frand() < 0.72f)
+            {
+                float ang = frand(0.0f, 6.2831f);
+                float rad = frand(0.0f, macroRad);
+                x = macroPos.x + cosf(ang) * rad;
+                z = macroPos.y + sinf(ang) * rad;
+            }
+            else if (!clusters.empty() && frand() < 0.90f)
             {
                 const Cl* pick = nullptr;
                 for (int s = 0; s < 10; s++) { const Cl& cc = clusters[rand() % clusters.size()]; if (cc.y >= lo && cc.y <= hi) { pick = &cc; break; } }
                 if (!pick) continue;
-                float spread = (cat == SHELL || cat == URCHIN) ? frand(10.0f, 130.0f) : frand(4.0f, 48.0f);
+                float spread = (cat == SHELL || cat == URCHIN) ? frand(14.0f, 180.0f) : frand(6.0f, 82.0f);
                 float ang = frand(0.0f, 6.2831f), rad = frand(0.0f, spread);
                 x = pick->p.x + cosf(ang) * rad; z = pick->p.y + sinf(ang) * rad;
             }
@@ -344,12 +418,38 @@ void Reef::Init()
         float size; sizeFor(cat, size);
         float rot = frand(0.0f, 6.2831f);
 
+        // Per-biome stylization: visually distinct seabed patches.
+        if (macroMode == 0)
+        {
+            if (cat == CORAL_TABLE || cat == CORAL_PLATE) size *= frand(1.05f, 1.35f);
+            if (cat == SHELL) size *= frand(0.80f, 1.05f);
+        }
+        else if (macroMode == 1)
+        {
+            if (cat == SHELL || cat == URCHIN) size *= frand(1.05f, 1.30f);
+            if (cat == CORAL_TABLE) size *= frand(0.80f, 1.00f);
+        }
+        else if (macroMode == 2)
+        {
+            if (cat == ROCK) size *= frand(1.10f, 1.45f);
+            if (cat == FEATHER) size *= frand(0.80f, 1.00f);
+        }
+        else if (macroMode == 3)
+        {
+            if (cat == CORAL_WHIP || cat == FEATHER) size *= frand(1.10f, 1.40f);
+        }
+
+        // create denser micro life around anchors
+        if (cat == SHELL || cat == URCHIN)
+            size *= frand(0.82f, 1.18f);
+
         float ry = realFloor(x, z);
         if (ry > 395.0f) continue;          // nie stawiaj korali nad powierzchnia wody
 
         Instance inst;
         inst.mesh = mi;
-        inst.pos = glm::vec3(x, ry - 0.5f, z);
+        float sink = (cat == SHELL || cat == URCHIN) ? frand(0.35f, 1.35f) : frand(0.15f, 0.80f);
+        inst.pos = glm::vec3(x, ry - sink, z);
         inst.tint = glm::vec3(frand(0.86f, 1.14f));
         inst.rough = 1.0f; inst.metal = 0.0f;
 
@@ -360,6 +460,68 @@ void Reef::Init()
         model = glm::translate(model, glm::vec3(-c.x, -my, -c.z));
         inst.model = model;
         instances.push_back(inst);
+    }
+
+    // Hero formations: large landmark clusters that remain visible farther away.
+    std::vector<glm::vec2> heroPoints;
+    const int heroTarget = 26;
+    int heroAttempts = 0;
+    while ((int)heroes.size() < heroTarget && heroAttempts < heroTarget * 120)
+    {
+        heroAttempts++;
+
+        float x = frand(90.0f, mapW - 90.0f);
+        float z = frand(90.0f, mapH - 90.0f);
+        if (!macros.empty() && frand() < 0.85f)
+        {
+            const Macro& m = macros[rand() % macros.size()];
+            float ang = frand(0.0f, 6.2831f);
+            float rad = frand(0.0f, m.radius * 0.82f);
+            x = glm::clamp(m.p.x + cosf(ang) * rad, 4.0f, mapW - 4.0f);
+            z = glm::clamp(m.p.y + sinf(ang) * rad, 4.0f, mapH - 4.0f);
+        }
+
+        float ry = realFloor(x, z);
+        if (ry > 390.0f || ry < -640.0f) continue;
+
+        bool crowded = false;
+        for (size_t i = 0; i < heroPoints.size(); ++i)
+        {
+            if (glm::distance(heroPoints[i], glm::vec2(x, z)) < 180.0f) { crowded = true; break; }
+        }
+        if (crowded) continue;
+
+        int cat = CORAL_WHIP;
+        int pick = rand() % 100;
+        if (pick < 30) cat = ROCK;
+        else if (pick < 62) cat = CORAL_TABLE;
+        else if (pick < 82) cat = CORAL_PLATE;
+        else cat = CORAL_WHIP; // "asset seaweed" from coral pack
+
+        if (catMeshes[cat].empty()) continue;
+        int mi = catMeshes[cat][rand() % catMeshes[cat].size()];
+
+        float baseSize = 1.0f;
+        sizeFor(cat, baseSize);
+        float size = baseSize * frand(2.1f, 3.4f);
+        if (cat == CORAL_WHIP) size *= frand(1.1f, 1.5f);
+
+        HeroInstance hero;
+        hero.mesh = mi;
+        hero.pos = glm::vec3(x, ry - frand(0.20f, 0.85f), z);
+        hero.tint = glm::vec3(frand(0.90f, 1.16f));
+
+        glm::vec3 c = meshCenter[mi];
+        float my = meshMinY[mi];
+        float rot = frand(0.0f, 6.2831f);
+        glm::mat4 model = glm::translate(glm::mat4(1.0f), hero.pos);
+        model = glm::rotate(model, rot, glm::vec3(0.0f, 1.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(size * meshInvExt[mi]));
+        model = glm::translate(model, glm::vec3(-c.x, -my, -c.z));
+        hero.model = model;
+
+        heroes.push_back(hero);
+        heroPoints.push_back(glm::vec2(x, z));
     }
 
     if (hm) stbi_image_free(hm);
@@ -383,7 +545,22 @@ void Reef::Draw(Shader& shader, const glm::mat4& view, const glm::mat4& projecti
     for (size_t i = 0; i < instances.size(); i++)
     {
         const Instance& inst = instances[i];
-        if (glm::distance(cameraPos, inst.pos) > 1300.0f) continue;
+        float dist = glm::distance(cameraPos, inst.pos);
+        if (dist > 1600.0f) continue;
+
+        const int cat = meshes[inst.mesh].cat;
+        if (dist > 1200.0f)
+        {
+            if (cat == SHELL || cat == URCHIN || cat == FEATHER) continue;
+            if (cat != ROCK && ((int)i % 2) != 0) continue;
+        }
+        else if (dist > 900.0f)
+        {
+            if (cat == SHELL && ((int)i % 3) != 0) continue;
+            if (cat == URCHIN && ((int)i % 2) != 0) continue;
+            if (cat == FEATHER && ((int)i % 2) != 0) continue;
+        }
+
         if (inst.mesh != lastMesh)
         {
             const Mesh& mref = meshes[inst.mesh];
@@ -396,6 +573,27 @@ void Reef::Draw(Shader& shader, const glm::mat4& view, const glm::mat4& projecti
         shader.SetMat4("model", inst.model);
         shader.SetVec3("albedoTint", inst.tint);
         glDrawElements(GL_TRIANGLES, meshes[inst.mesh].indexCount, GL_UNSIGNED_INT, 0);
+    }
+
+    // Hero formations stay visible from farther distances.
+    for (size_t i = 0; i < heroes.size(); i++)
+    {
+        const HeroInstance& hero = heroes[i];
+        if (glm::distance(cameraPos, hero.pos) > 2400.0f) continue;
+
+        if (hero.mesh != lastMesh)
+        {
+            const Mesh& mref = meshes[hero.mesh];
+            glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, mref.albedoTex);
+            glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, mref.normalTex);
+            glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, mref.ormTex);
+            glBindVertexArray(mref.VAO);
+            lastMesh = hero.mesh;
+        }
+
+        shader.SetMat4("model", hero.model);
+        shader.SetVec3("albedoTint", hero.tint);
+        glDrawElements(GL_TRIANGLES, meshes[hero.mesh].indexCount, GL_UNSIGNED_INT, 0);
     }
     glBindVertexArray(0);
 }
@@ -410,6 +608,13 @@ void Reef::DrawDepth(Shader& shader, const glm::mat4& lightSpaceMatrix)
         if (instances[i].mesh != lastMesh) { glBindVertexArray(meshes[instances[i].mesh].VAO); lastMesh = instances[i].mesh; }
         shader.SetMat4("model", instances[i].model);
         glDrawElements(GL_TRIANGLES, meshes[instances[i].mesh].indexCount, GL_UNSIGNED_INT, 0);
+    }
+
+    for (size_t i = 0; i < heroes.size(); i++)
+    {
+        if (heroes[i].mesh != lastMesh) { glBindVertexArray(meshes[heroes[i].mesh].VAO); lastMesh = heroes[i].mesh; }
+        shader.SetMat4("model", heroes[i].model);
+        glDrawElements(GL_TRIANGLES, meshes[heroes[i].mesh].indexCount, GL_UNSIGNED_INT, 0);
     }
     glBindVertexArray(0);
 }

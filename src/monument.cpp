@@ -60,13 +60,24 @@ void Monument::Init(float worldX, float worldZ, float baseY, float topY)
     glBindVertexArray(0);
 }
 
-void Monument::Draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection, const glm::vec3& sunDirection, const glm::vec3& cameraPos)
+void Monument::Draw(Shader& shader,
+                    const glm::mat4& view,
+                    const glm::mat4& projection,
+                    const glm::vec3& sunDirection,
+                    const glm::vec3& cameraPos,
+                    const glm::mat4& lightSpaceMatrix,
+                    unsigned int shadowMap)
 {
     shader.Use();
     shader.SetMat4("view", view);
     shader.SetMat4("projection", projection);
     shader.SetVec3("sunDirection", sunDirection);
     shader.SetVec3("cameraPos", cameraPos);
+    shader.SetMat4("lightSpaceMatrix", lightSpaceMatrix);
+    shader.SetInt("shadowMap", 0);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, shadowMap);
 
     glBindVertexArray(VAO);
     glDrawArrays(GL_TRIANGLES, 0, vertexCount);

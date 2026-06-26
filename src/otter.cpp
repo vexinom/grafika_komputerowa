@@ -29,6 +29,7 @@ static const float WORLD_MINX = 650.0f,  WORLD_MAXX = 3550.0f;
 static const float WORLD_MINZ = 450.0f,  WORLD_MAXZ = 2950.0f;
 static const float WORLD_MINY = 80.0f,   WORLD_MAXY = WATER_LEVEL - 40.0f;
 static const glm::vec3 HOME = glm::vec3(1300.0f, 170.0f, 1200.0f);
+static const float MODEL_FORWARD_FIX_YAW = 3.14159265359f;
 
 float Otter::frand(float a, float b) { return a + (b - a) * ((float)rand() / (float)RAND_MAX); }
 
@@ -226,20 +227,25 @@ void Otter::Update(float dt, const glm::vec3& cameraPos, Fish& fish)
     {
         hunger = glm::max(0.0f, hunger - HUNGER_RATE * dt);
 
-        glm::vec3 desiredVel(0.0f);
-        float speed = CRUISE_SPEED;
+        glm::vec3 desiredDir = facing;
+        float targetSpeed = 0.0f;
+        bool lockPosition = false;
 
         if (state == WANDER)
         {
-            speed = CRUISE_SPEED;
             glm::vec3 to = wanderTarget - position;
             if (glm::length(to) < 45.0f) PickWanderTarget(false);
-            else desiredVel = glm::normalize(to) * speed;
+            else
+            {
+                float d = glm::length(to);
+                desiredDir = to / glm::max(d, 1e-4f);
+                float slow = glm::clamp(d / 180.0f, 0.35f, 1.0f);
+                targetSpeed = CRUISE_SPEED * slow;
+            }
             if (hunger <= 0.0f) { EnterState(HUNGRY); PickWanderTarget(true); }
         }
         else if (state == HUNGRY)
         {
-            speed = HUNT_SPEED;
             glm::vec3 found;
             int idx = fish.FindNearestFish(position, DETECT_RADIUS, found);
             if (idx >= 0) { preyIndex = idx; preyPos = found; EnterState(CHASE); }
@@ -247,12 +253,16 @@ void Otter::Update(float dt, const glm::vec3& cameraPos, Fish& fish)
             {
                 glm::vec3 to = wanderTarget - position;
                 if (glm::length(to) < 70.0f) PickWanderTarget(true);
-                else desiredVel = glm::normalize(to) * speed;
+                else
+                {
+                    float d = glm::length(to);
+                    desiredDir = to / glm::max(d, 1e-4f);
+                    targetSpeed = HUNT_SPEED * 0.72f;
+                }
             }
         }
         else if (state == CHASE)
         {
-            speed = HUNT_SPEED;
             if (!fish.FishAlive(preyIndex)) { EnterState(HUNGRY); PickWanderTarget(true); }
             else
             {
@@ -260,7 +270,11 @@ void Otter::Update(float dt, const glm::vec3& cameraPos, Fish& fish)
                 glm::vec3 to = preyPos - position;
                 float d = glm::length(to);
                 if (d < ATTACK_RADIUS) EnterState(ATTACK);
-                else if (d > 1e-3f) desiredVel = (to / d) * speed;
+                else if (d > 1e-3f)
+                {
+                    desiredDir = to / d;
+                    targetSpeed = HUNT_SPEED;
+                }
             }
         }
         else // ATTACK
@@ -272,8 +286,8 @@ void Otter::Update(float dt, const glm::vec3& cameraPos, Fish& fish)
                 float d = glm::length(to);
                 if (d > 1e-3f)
                 {
-                    float lungeSpeed = glm::min(HUNT_SPEED, d / 0.15f + 25.0f);
-                    desiredVel = (to / d) * lungeSpeed;
+                    desiredDir = to / d;
+                    targetSpeed = glm::min(HUNT_SPEED, d / 0.15f + 25.0f);
                 }
                 attackTimer -= dt;
                 if (d < 16.0f || attackTimer <= 0.0f)
@@ -283,15 +297,18 @@ void Otter::Update(float dt, const glm::vec3& cameraPos, Fish& fish)
                     eatTimer = 1.5f;
                     SetClip(eatClip);
                     velocity = glm::vec3(0.0f);
+                    speedCurrent = 0.0f;
                     eatAnchor = position;         // lock the spot it caught the fish
                 }
             }
             else
             {
                 // frozen in place for the whole meal
-                desiredVel = glm::vec3(0.0f);
-                velocity   = glm::vec3(0.0f);
-                position   = eatAnchor;
+                targetSpeed = 0.0f;
+                speedCurrent = 0.0f;
+                velocity = glm::vec3(0.0f);
+                lockPosition = true;
+                position = eatAnchor;
                 eatTimer -= dt;
                 if (eatTimer <= 0.0f)
                 {
@@ -303,19 +320,23 @@ void Otter::Update(float dt, const glm::vec3& cameraPos, Fish& fish)
             }
         }
 
-        if (glm::length(desiredVel) > 1.0f)
-            desiredVel.y += sinf(swimPhase) * glm::length(desiredVel) * 0.05f;   // subtle dorsoventral glide
+        if (!lockPosition)
+        {
+            if (glm::length(desiredDir) > 1e-4f)
+            {
+                desiredDir = glm::normalize(desiredDir);
+                facing = glm::normalize(glm::mix(facing, desiredDir, glm::clamp(dt * 3.2f, 0.0f, 1.0f)));
+            }
 
-        velocity = glm::mix(velocity, desiredVel, glm::clamp(dt * 4.0f, 0.0f, 1.0f));
-        position += velocity * dt;
+            speedCurrent = glm::mix(speedCurrent, targetSpeed, glm::clamp(dt * 2.8f, 0.0f, 1.0f));
+            velocity = facing * speedCurrent;
+            velocity.y += sinf(swimPhase) * glm::clamp(speedCurrent * 0.022f, 0.0f, 4.0f);
+            position += velocity * dt;
+        }
 
         position.x = glm::clamp(position.x, WORLD_MINX, WORLD_MAXX);
         position.y = glm::clamp(position.y, WORLD_MINY, WORLD_MAXY);
         position.z = glm::clamp(position.z, WORLD_MINZ, WORLD_MAXZ);
-
-        float vlen = glm::length(velocity);
-        if (vlen > 3.0f)
-            facing = glm::normalize(glm::mix(facing, velocity / vlen, glm::clamp(dt * 5.0f, 0.0f, 1.0f)));
 
         // No scare field while attacking/eating: catch and eat in place without
         // shoving the rest of the school around.
@@ -348,7 +369,11 @@ void Otter::Update(float dt, const glm::vec3& cameraPos, Fish& fish)
     basis[2] = glm::vec4(fwd,   0.0f);   // local +Z (head) -> travel direction
 
     float scaleFactor = TARGET_LENGTH / extent;
-    model = glm::translate(glm::mat4(1.0f), position) * basis;
+    // Asset forward axis is opposite to the swim clips naming; apply a local 180deg yaw
+    // so visual head direction matches the physical movement direction.
+    model = glm::translate(glm::mat4(1.0f), position)
+          * basis
+          * glm::rotate(glm::mat4(1.0f), MODEL_FORWARD_FIX_YAW, glm::vec3(0.0f, 1.0f, 0.0f));
     model = glm::scale(model, glm::vec3(scaleFactor));
     model = glm::translate(model, -modelCenter);
 

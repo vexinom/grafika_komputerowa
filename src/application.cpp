@@ -59,6 +59,11 @@ bool Application::Init()
 
     shadersInit();
 
+    if(!Init_Shadow())
+    {
+        return false;
+    }
+
     glDisable(GL_CULL_FACE);
 
     waterFrameBuffer.init();
@@ -173,7 +178,7 @@ void Application::ShadowPass()
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);          // make sure depth writes are on, or the map stays empty
     glClear(GL_DEPTH_BUFFER_BIT);
-    glCullFace(GL_FRONT);          // cast from back faces -> kills terrain self-shadow acne
+    glDisable(GL_CULL_FACE);       // keep thin / one-sided meshes (palms) in shadow map
 
 
     shaders["depth"]->Use();
@@ -190,6 +195,9 @@ void Application::ShadowPass()
 
     scene.reef.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
     scene.islandPalms.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
+
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, width, height);
@@ -312,13 +320,13 @@ void Application::Run()
         scene.tube.Draw(*shaders["tube"], view, projection, scene.sun.direction, scene.camera.Position);
 
         glFrontFace(GL_CW);
-        scene.monument.Draw(*shaders["object"], view, projection, scene.sun.direction, scene.camera.Position);
+        scene.monument.Draw(*shaders["object"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap);
         glFrontFace(GL_CCW);
         
         
         scene.reef.Draw(*shaders["reef"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap, headlightPos, headlightColor);
 
-        scene.islandPalms.Draw(*shaders["palm"], view, projection, scene.sun.direction, scene.camera.Position);
+        scene.islandPalms.Draw(*shaders["palm"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap);
 
         scene.axolotl.Draw(*shaders["axolotl"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap);
 

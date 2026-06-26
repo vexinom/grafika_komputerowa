@@ -341,7 +341,9 @@ void IslandPalms::Draw(Shader& shader,
                        const glm::mat4& view,
                        const glm::mat4& projection,
                        const glm::vec3& sunDirection,
-                       const glm::vec3& cameraPos)
+                       const glm::vec3& cameraPos,
+                       const glm::mat4& lightSpaceMatrix,
+                       unsigned int shadowMap)
 {
     if (meshes.empty() || instances.empty())
         return;
@@ -350,11 +352,14 @@ void IslandPalms::Draw(Shader& shader,
 
     shader.SetMat4("view", view);
     shader.SetMat4("projection", projection);
+    shader.SetMat4("lightSpaceMatrix", lightSpaceMatrix);
     shader.SetVec3("sunDirection", sunDirection);
     shader.SetVec3("cameraPos", cameraPos);
     shader.SetInt("albedo", 0);
+    shader.SetInt("shadowMap", 1);
 
-    glActiveTexture(GL_TEXTURE0);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, shadowMap);
 
     for (const Instance& inst : instances)
     {
@@ -362,6 +367,7 @@ void IslandPalms::Draw(Shader& shader,
 
         for (const Mesh& mesh : meshes)
         {
+            glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, mesh.albedoTex);
             glBindVertexArray(mesh.VAO);
             glDrawElements(GL_TRIANGLES, mesh.indexCount, GL_UNSIGNED_INT, 0);

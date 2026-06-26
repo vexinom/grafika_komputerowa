@@ -74,6 +74,7 @@ private:
     glm::vec3 wanderTarget = glm::vec3(1200.0f, 160.0f, 1300.0f);
     float yaw = 0.0f;
     glm::vec3 facing = glm::vec3(0.0f, 0.0f, -1.0f);
+    float speedCurrent = 0.0f;
     float swimPhase = 0.0f;
     glm::mat4 model = glm::mat4(1.0f);
 };
