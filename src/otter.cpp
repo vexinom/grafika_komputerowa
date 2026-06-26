@@ -102,7 +102,11 @@ void Otter::Init()
 
     wanderClip = FindClip("swim_fwd_underwater_01");
     fastClip   = FindClip("swim_fwd_surface_fast");
-    attackClip = FindClip("swim_surface_dive_fwd");
+    // NOTE: swim_surface_dive_fwd (and all the dive/start/transition clips) ship with
+    // degenerate joint matrices (scale ~0.010), which collapse/explode the skinned mesh
+    // -- that was the otter "disappearing / flying into space / shrinking" on attack.
+    // Use a clean fast-swim clip for the lunge instead.
+    attackClip = FindClip("swim_fwd_surface_fast");
     idleClip   = FindClip("swim_surface_idle");
     eatClip    = FindClip("idle_eat_01");
 

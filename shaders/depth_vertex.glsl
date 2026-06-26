@@ -8,25 +8,12 @@ uniform vec2 chunkOffset;
 uniform vec2 textureSize;
 uniform vec3 terrainParams;
 
-// must match worldmesh_vertex.glsl terrainHeight()
-const float DEEP   = -700.0;
-const float SHELF  =   30.0;
-const float ISLAND =  320.0;
-
+// MUST match worldmesh_vertex.glsl terrainHeight() exactly, or the terrain written
+// into the shadow map sits at different heights than the terrain actually rendered
+// and every shadow comparison is garbage.
 float terrainHeight(vec2 g)
 {
-    vec2 uv = g / textureSize;
-    float s = texture(heightmap, uv).r;
-    float rn = length(uv - vec2(0.5)) * 2.0;
-    float slope = smoothstep(0.40, 0.72, rn);
-    float base  = mix(DEEP, SHELF, slope);
-    float isl   = smoothstep(0.90, 1.30, rn);
-    base = mix(base, ISLAND, isl);
-    float deepAmt = 1.0 - slope;
-    float amt = 18.0 + 160.0 * deepAmt + 190.0 * isl;
-    float h = base + (s - 0.5) * 2.0 * amt;
-    h -= isl * (1.0 - s) * 240.0;
-    return h;
+    return (texture(heightmap, g / textureSize).r * terrainParams.x) + terrainParams.y;
 }
 
 void main()

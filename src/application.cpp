@@ -25,7 +25,7 @@ bool Application::Init()
     openGLConfiguration();
    
 
-    window = glfwCreateWindow(width, height, "OpenGL", NULL, NULL);
+    window = glfwCreateWindow(width, height, "OpenGL - FIX shadows+otter v2", NULL, NULL);
 
     if(!window)
     {
@@ -157,18 +157,23 @@ void Application::ShadowPass()
     glm::vec3 center = scene.camera.Position;
     glm::vec3 up = glm::abs(lightDir.y) > 0.99f ? glm::vec3(0.0f, 0.0f, 1.0f) : glm::vec3(0.0f, 1.0f, 0.0f);
 
-    //works 
-    glm::mat4 lightView = glm::lookAt(center + lightDir * 10000.1f, center, up);
+    // The light has to sit INSIDE its own depth range or the whole scene is clipped
+    // out of the shadow map (it was 10000 away with a 4000 far plane -> nothing was
+    // ever rendered, so nothing cast a shadow). Keep it a few thousand units back and
+    // give far enough room to cover the scene around the camera.
+    glm::mat4 lightView = glm::lookAt(center + lightDir * 3000.0f, center, up);
 
-    float orthoSize = 2000.0f; 
-    glm::mat4 lightProjection = glm::ortho(-orthoSize, orthoSize, -orthoSize, orthoSize, 1.0f, 4000.0f);
+    float orthoSize = 2000.0f;
+    glm::mat4 lightProjection = glm::ortho(-orthoSize, orthoSize, -orthoSize, orthoSize, 1.0f, 6000.0f);
     
     lightSpaceMatrix = lightProjection * lightView;
 
     glViewport(0, 0, SHADOW_RESOLUTION, SHADOW_RESOLUTION);
     glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
-    glClear(GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);          // make sure depth writes are on, or the map stays empty
+    glClear(GL_DEPTH_BUFFER_BIT);
+    glCullFace(GL_FRONT);          // cast from back faces -> kills terrain self-shadow acne
 
     shaders["depth"]->Use();
     scene.worldmesh.DrawDepth(*shaders["depth"], lightSpaceMatrix, scene.camera.Position);
