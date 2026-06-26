@@ -74,13 +74,11 @@ void main()
     } 
     else 
     {
-        
         finalColor = mix(finalColor, waterBaseColor.rgb, 0.6);
     }
 
     vec2 texCoordHeight = FragPos.xz / textureSize;
     
-
     texCoordHeight = clamp(texCoordHeight, 0.0, 1.0);
     
     float rawY = texture(heightmap, texCoordHeight).r;
@@ -101,7 +99,7 @@ void main()
 
     vec3 horizonDay = vec3(0.278, 0.757, 0.922);
     vec3 horizonSunset = vec3(0.9, 0.4, 0.1);
-    vec3 horizonNight = vec3(0.149, 0.149, 0.243);
+    vec3 horizonNight = vec3(0.141, 0.149, 0.22);
 
     vec3 currentHorizon;
     if (sunY > 0.0) 

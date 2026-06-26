@@ -1,67 +1,58 @@
 #version 330 core
-
-in vec3 vFragPos;
-in vec3 vNormal;
-in vec2 vUV;
-in vec4 vFragPosLightSpace;
-
 out vec4 FragColor;
 
-uniform sampler2D albedo;
+in vec3 FragPos;
+in vec3 Normal;
+in vec2 TexCoords;
+in vec4 FragPosLightSpace;
+
+uniform sampler2D texture_diffuse1; 
 uniform sampler2D shadowMap;
+
 uniform vec3 sunDirection;
 uniform vec3 cameraPos;
 
-float ShadowFactor(float NdotL)
+float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
 {
-    vec3 proj = vFragPosLightSpace.xyz / vFragPosLightSpace.w * 0.5 + 0.5;
-
-    if (proj.x < 0.0 || proj.x > 1.0 || proj.y < 0.0 || proj.y > 1.0 || proj.z > 1.0)
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+    
+    if(projCoords.z > 1.0)
         return 0.0;
-
-    float bias = max(0.01 * (1.0 - NdotL), 0.0010);
-    vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
-
-    float shadow = 0.0;
-    for (int x = -1; x <= 1; ++x)
-    {
-        for (int y = -1; y <= 1; ++y)
-        {
-            float pcfDepth = texture(shadowMap, proj.xy + vec2(x, y) * texelSize).r;
-            shadow += (proj.z - bias > pcfDepth) ? 1.0 : 0.0;
-        }
-    }
-
-    return min(shadow / 9.0, 0.85);
+        
+    float closestDepth = texture(shadowMap, projCoords.xy).r; 
+    float currentDepth = projCoords.z;
+    
+   
+    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+    float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
+    
+    return shadow;
 }
 
 void main()
-{
-    vec4 tex = texture(albedo, vUV);
-
-    if (tex.a < 0.08)
+{    
+    vec4 texColor = texture(texture_diffuse1, TexCoords);
+    
+    if(texColor.a < 0.1)
         discard;
 
-    vec3 N = normalize(vNormal);
-    if (!gl_FrontFacing)
-        N = -N;
+    vec3 norm = normalize(Normal);
+    vec3 lightDir = normalize(sunDirection);
 
-    vec3 L = normalize(sunDirection);
-    vec3 V = normalize(cameraPos - vFragPos);
-    vec3 H = normalize(L + V);
+   
+    float sunHeight = lightDir.y; 
+    float dayFactor = clamp(sunHeight * 2.0, 0.0, 1.0); 
+  
+    vec3 ambient = (vec3(0.25) + vec3(0.2) * dayFactor) * texColor.rgb;
 
-    float sunIntensity = smoothstep(-0.1, 0.15, L.y);
-    float NdotL = max(dot(N, L), 0.0);
-    float shadow = ShadowFactor(NdotL);
-    float spec = pow(max(dot(N, H), 0.0), 24.0) * 0.05 * (1.0 - 0.6 * shadow);
+    
+    float diff = max(dot(norm, lightDir), 0.0);
+    vec3 diffuse = (vec3(0.8) * diff * dayFactor) * texColor.rgb; 
 
-    vec3 ambient = tex.rgb * mix(vec3(0.18, 0.22, 0.20), vec3(0.34, 0.38, 0.32), sunIntensity);
-    vec3 diffuse = tex.rgb * vec3(1.0, 0.96, 0.86) * NdotL * sunIntensity * (1.0 - shadow);
-
-    vec3 color = ambient + diffuse + vec3(spec);
-
-    color = color / (color + vec3(1.0));
-    color = pow(color, vec3(1.0 / 2.2));
-
-    FragColor = vec4(color, tex.a);
+    float shadow = ShadowCalculation(FragPosLightSpace, norm, lightDir);                      
+    
+    vec3 finalColor = ambient + (1.0 - shadow) * diffuse;
+    
+    FragColor = vec4(finalColor, texColor.a);
 }
