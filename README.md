@@ -1,6 +1,6 @@
-# Interaktywna scena podwodna - OpenGL / GLSL
+# Scena podwodna - OpenGL / GLSL C++
 
-Projekt zaliczeniowy GRK 2026. Aplikacja 3D w C++/OpenGL/GLSL przedstawiająca scenę podwodną z terenem, rafą, stworzeniami, latarnią, wodą z odbiciem/załamaniem, cząstkami i post-process.
+Projekt zaliczeniowy GRK 2026. Aplikacja 3D w C++/OpenGL/GLSL przedstawiająca scenę podwodną z terenem, rafą, stworzeniami, latarnią, wodą z odbiciem/załamaniem, cząstkami i post-processingiem.
 
 ## Skład grupy
 
@@ -15,9 +15,7 @@ Kombinacja zgłoszona w projekcie:
 - A10 - Skeletal animation lub vertex-shader swimming animation
 - B04 - Fish/submarine movement along a spline path
 
-## Metody obowiązkowe (wymagane dla wszystkich grup)
-
-Poniżej audyt kodu pod wymagania z PDF.
+## Metody obowiązkowe
 
 | Metoda obowiązkowa | Status | Gdzie w kodzie |
 |---|---|---|
@@ -28,10 +26,7 @@ Poniżej audyt kodu pod wymagania z PDF.
 | Parallel Transport Frames | Zaimplementowane | `src/axolotl.cpp` (PTF dla orientacji stworzeń na splajnie), `src/tube.cpp` (transport ramki wzdłuż krzywej przy generacji rury) |
 | Underwater skybox/cubemap | Zaimplementowane | `src/cubemap.cpp` (cubemap), `src/application.cpp` (przełączanie C), widok bez translacji kamery przez `mat3(view)` |
 
-## Metody dodatkowe z list A/B, które faktycznie są w kodzie
-
-Nie wszystkie metody z list A/B są wymagane. Poniżej tylko te, które są rzeczywiście zaimplementowane.
-
+## Metody dodatkowe z list A/B
 | ID | Metoda z PDF | Status | Gdzie w kodzie |
 |---|---|---|---|
 | A10 | Skeletal animation / vertex-shader swimming animation | Zaimplementowane | `shaders/axolotl_vertex.glsl` (deformacja pływania), `src/otter.cpp` + `shaders/otter_vertex.glsl` (skinning ottery) |
@@ -106,16 +101,6 @@ Uruchomienie:
 - `src/`, `headers/` - logika aplikacji C++
 - `shaders/` - shadery GLSL
 - `assets/` - modele, tekstury, cubemap, heightmap
-
-## Zrzuty ekranu
-
-Do uzupełnienia przed oddaniem (zgodnie z wymaganiami PDF):
-
-- widok sceny głównej
-- demonstracja cieni
-- demonstracja PBR/normal mapping
-- demonstracja cubemapy
-- demonstracja efektów post-process (fog, caustics, god rays)
 
 ## Źródła i licencje zasobów
 
