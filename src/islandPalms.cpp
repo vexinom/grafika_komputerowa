@@ -16,6 +16,7 @@
 
 #include "objloader.h"
 #include "stb_image.h"
+#include "config.h"
 
 static float frand()
 {
@@ -276,12 +277,12 @@ void IslandPalms::Init()
     int h = 0;
     int n = 0;
 
-    unsigned char* hm = stbi_load("assets/worldmap.png", &w, &h, &n, 1);
+    unsigned short* hm = stbi_load_16("assets/worldmap.png", &w, &h, &n, 1);
 
     float mapW = static_cast<float>(w ? w : 2048);
     float mapH = static_cast<float>(h ? h : 2048);
 
-    auto terrainHeight = [&](float x, float z) -> float
+    auto heightmapScore = [&](float x, float z) -> float
     {
         if (!hm)
             return 420.0f;
@@ -291,18 +292,83 @@ void IslandPalms::Init()
 
         float s = hm[zi * w + xi] / 255.0f;
 
-        // To jest wysokosc faktycznego terenu uzywana tez przy reefach.
         return s * 500.0f;
+    };
+
+    auto sampleHeight01 = [&](float x, float z) -> float
+    {
+        if (!hm || w <= 0 || h <= 0)
+            return 0.0f;
+
+        float fx = glm::clamp(x, 0.0f, mapW - 1.0f);
+        float fz = glm::clamp(z, 0.0f, mapH - 1.0f);
+
+        int x0 = static_cast<int>(std::floor(fx));
+        int z0 = static_cast<int>(std::floor(fz));
+        int x1 = std::min(x0 + 1, w - 1);
+        int z1 = std::min(z0 + 1, h - 1);
+
+        float tx = fx - static_cast<float>(x0);
+        float tz = fz - static_cast<float>(z0);
+
+        auto at = [&](int px, int pz) -> float
+        {
+            return static_cast<float>(hm[pz * w + px]) / 65535.0f;
+        };
+
+        float h00 = at(x0, z0);
+        float h10 = at(x1, z0);
+        float h01 = at(x0, z1);
+        float h11 = at(x1, z1);
+
+        float hx0 = glm::mix(h00, h10, tx);
+        float hx1 = glm::mix(h01, h11, tx);
+
+        return glm::mix(hx0, hx1, tz);
+    };
+
+    auto terrainHeight = [&](float x, float z) -> float
+    {
+        return sampleHeight01(x, z) * config::Y_SCALE_TERRAIN + config::Y_SHIFT_TERRAIN;
+    };
+
+    auto isPalmAreaAboveWater = [&](float x, float z, float radius) -> bool
+    {
+        const float waterMargin = 18.0f;
+        const float minY = config::WATERLEVEL + waterMargin;
+
+        const glm::vec2 samples[] =
+        {
+            glm::vec2(0.0f, 0.0f),
+            glm::vec2( radius, 0.0f),
+            glm::vec2(-radius, 0.0f),
+            glm::vec2(0.0f,  radius),
+            glm::vec2(0.0f, -radius),
+            glm::vec2( radius * 0.7f,  radius * 0.7f),
+            glm::vec2(-radius * 0.7f,  radius * 0.7f),
+            glm::vec2( radius * 0.7f, -radius * 0.7f),
+            glm::vec2(-radius * 0.7f, -radius * 0.7f)
+        };
+
+        for (const glm::vec2& offset : samples)
+        {
+            float yy = terrainHeight(x + offset.x, z + offset.y);
+
+            if (yy < minY)
+                return false;
+        }
+
+        return true;
     };
 
     srand(2606);
 
-    const int targetPalms = 28;
-    const float minIslandHeight = 400.0f;
+    const int targetPalms = 15;
+    const float minIslandHeight = config::WATERLEVEL + 8.0f;
 
     int attempts = 0;
 
-    while (static_cast<int>(instances.size()) < targetPalms && attempts < 6000)
+    while (static_cast<int>(instances.size()) < targetPalms && attempts < 80000)
     {
         attempts++;
 
@@ -310,8 +376,27 @@ void IslandPalms::Init()
         float z = frand(80.0f, mapH - 80.0f);
         float y = terrainHeight(x, z);
 
-        // Stawiamy tylko na wyspach / nad woda.
-        if (y < minIslandHeight)
+        // Minimum nad wodą dla środka palmy.
+        if (y < config::WATERLEVEL + 18.0f)
+            continue;
+
+        // Sprawdzamy większy obszar wokół palmy, żeby nie stawiać jej na brzegu,
+        // gdzie pień albo część modelu wpada pod wodę.
+        if (!isPalmAreaAboveWater(x, z, 42.0f))
+            continue;
+
+        // Nie stawiaj palm na bardzo stromych zboczach.
+        float y1 = terrainHeight(x + 18.0f, z);
+        float y2 = terrainHeight(x - 18.0f, z);
+        float y3 = terrainHeight(x, z + 18.0f);
+        float y4 = terrainHeight(x, z - 18.0f);
+
+        float maxDiff = glm::max(
+            glm::max(std::abs(y - y1), std::abs(y - y2)),
+            glm::max(std::abs(y - y3), std::abs(y - y4))
+        );
+
+        if (maxDiff > 10.0f)
             continue;
 
         float targetHeight = frand(95.0f, 145.0f);
@@ -319,7 +404,7 @@ void IslandPalms::Init()
         float rot = frand(0.0f, 6.2831853f);
 
         Instance inst;
-        inst.pos = glm::vec3(x, y + 0.5f, z);
+        inst.pos = glm::vec3(x, y - 40.0f, z);
 
         glm::mat4 model(1.0f);
         model = glm::translate(model, inst.pos);
@@ -348,6 +433,9 @@ void IslandPalms::Draw(Shader& shader,
     if (meshes.empty() || instances.empty())
         return;
 
+    GLboolean cullingWasEnabled = glIsEnabled(GL_CULL_FACE);
+    glDisable(GL_CULL_FACE);
+
     shader.Use();
 
     shader.SetMat4("view", view);
@@ -375,6 +463,9 @@ void IslandPalms::Draw(Shader& shader,
     }
 
     glBindVertexArray(0);
+
+    if (cullingWasEnabled)
+        glEnable(GL_CULL_FACE);
 }
 
 void IslandPalms::DrawDepth(Shader& shader, const glm::mat4& lightSpaceMatrix)

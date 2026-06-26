@@ -189,6 +189,7 @@ void Application::ShadowPass()
     scene.monument.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
     scene.axolotl.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
     scene.reef.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
+    scene.islandPalms.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
 
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
