@@ -304,7 +304,7 @@ void Application::Run()
         if (drawRefRefl)
         {
             m_reflFrameCounter++;
-            if (m_reflFrameCounter >= 3)   
+            if (m_reflFrameCounter >= 2)   
             {
                 drawReflectionsReflaction();
                 m_reflFrameCounter = 0;
@@ -792,6 +792,25 @@ void Application::drawReflectionsReflaction()
         scene.cubemap.Draw(*shaders["cubemap"], reflectView, projection);
     else
         scene.skydome.Draw(*shaders["skydome"], reflectViewProj, scene.camera.Position, scene.sun.direction, glfwGetTime(), scene.watermesh.waterLevel);
+
+    shaders["object"]->Use();
+    shaders["object"]->SetVec4("clipPlane", clipPlaneReflection);
+
+    glFrontFace(GL_CCW); 
+    scene.monument.Draw(*shaders["object"], reflectView, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap);
+
+    
+    
+    shaders["palm"]->Use();
+    shaders["palm"]->SetVec4("clipPlane", clipPlaneReflection);
+
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+
+    glFrontFace(GL_CW); 
+    scene.islandPalms.Draw(*shaders["palm"], reflectView, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap);
+
+    glFrontFace(GL_CCW);
 
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);

@@ -157,6 +157,9 @@ void main()
 
     vec3 color = ambient + direct + sunGlints;
 
+    float algaeMask = smoothstep(water_level, water_level + 2.0, Height) * (1.0 - smoothstep(water_level, water_level + 15.0, Height));
+    color += vec3(0.027, 0.737, 0.878) * algaeMask * (1.0 - sunIntensity) * 0.05;
+
     vec3 toHeadlight = headlightPos - WorldPos;
     float hd = length(toHeadlight);
     float hatt = 1.0 / (1.0 + 0.0006 * hd * hd);

@@ -10,7 +10,6 @@ uniform sampler2D nightSkyTexture;
 uniform sampler2D cloudTexture;
 uniform float time;
 
-
 uniform float cameraY;     
 uniform float waterLevel;  
 
@@ -23,7 +22,7 @@ void main()
 
     vec3 horizonDay = vec3(0.278, 0.757, 0.922);
     vec3 horizonSunset = vec3(0.9, 0.4, 0.1);
-    vec3 horizonNight = vec3(0.086, 0.086, 0.09);
+    vec3 horizonNight = vec3(0.141, 0.149, 0.22);
 
     float dayFactor = clamp(sunY * 2.0, 0.0, 1.0);
     vec3 currentZenith = mix(zenithNight, zenithDay, dayFactor);
@@ -70,7 +69,8 @@ void main()
 
     vec3 nightTextureColor = texture(nightSkyTexture, TexCoords).rgb;
     float nightFade = smoothstep(0.1, -0.2, sunY);
-    finalColor = mix(finalColor, nightTextureColor, nightFade);
+    float starHorizonFade = smoothstep(0.0, 0.15, LocalPos.y);
+    finalColor = mix(finalColor, nightTextureColor, nightFade * starHorizonFade);
 
     vec2 cloudUV = TexCoords + vec2(time * 0.001, time * 0.005);
     vec4 cloudSample = texture(cloudTexture, cloudUV);
@@ -80,7 +80,14 @@ void main()
     
     cloudAlpha *= (1.0 - (isUnderwater * isBelowHorizon));
 
-    finalColor = mix(finalColor, cloudSample.rgb, cloudAlpha);
+    float zenithFade = smoothstep(0.92, 0.75, LocalPos.y);
+    cloudAlpha *= zenithFade;
+
+    float sunsetFactor = smoothstep(0.3, 0.0, abs(sunY));
+    vec3 cloudTint = mix(vec3(1.0), vec3(1.0, 0.55, 0.15), sunsetFactor);
+    vec3 tintedCloudColor = cloudSample.rgb * cloudTint;
+
+    finalColor = mix(finalColor, tintedCloudColor, cloudAlpha);
 
     FragColor = vec4(finalColor, 1.0);
 }
