@@ -20,6 +20,8 @@ void main()
 {
     vec2 globalXZ = chunkOffset + aLocalPos;
     float worldY = terrainHeight(globalXZ);
+    
     if (aIsSkirt > 0.5) worldY -= max(terrainParams.z, 30.0);
+    
     gl_Position = lightSpaceMatrix * vec4(globalXZ.x, worldY, globalXZ.y, 1.0);
 }

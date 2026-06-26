@@ -52,4 +52,7 @@ class Axolotl
         float animTime;
 
         std::vector<AxolotlInstance> instances;
+        void BindShaderState(Shader& shader, const glm::mat4& view, const glm::mat4& projection,
+                         const glm::vec3& sunDirection, const glm::vec3& cameraPos,
+                         const glm::mat4& lightSpaceMatrix, unsigned int shadowMap);
 };

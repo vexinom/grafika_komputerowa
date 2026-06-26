@@ -14,7 +14,7 @@ void Scene::Init()
     fish.Init();
     otter.Init();
     reef.Init();
-    islandPalms.Init();
+    //islandPalms.Init();
     particles.Init(2400);
 }
 
