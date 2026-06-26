@@ -157,11 +157,11 @@ void Application::ShadowPass()
     glm::vec3 center = scene.camera.Position;
     glm::vec3 up = glm::abs(lightDir.y) > 0.99f ? glm::vec3(0.0f, 0.0f, 1.0f) : glm::vec3(0.0f, 1.0f, 0.0f);
 
-    //works 
-    glm::mat4 lightView = glm::lookAt(center + lightDir * 10000.1f, center, up);
-
-    float orthoSize = 2000.0f; 
-    glm::mat4 lightProjection = glm::ortho(-orthoSize, orthoSize, -orthoSize, orthoSize, 1.0f, 4000.0f);
+    // Słońce odsunięte o 500 jednostek od kamery
+    glm::mat4 lightView = glm::lookAt(center + lightDir * 500.0f, center, up);
+    
+    // Obszar cienia to "pudełko" 800x800 jednostek dookoła gracza
+    glm::mat4 lightProjection = glm::ortho(-400.0f, 400.0f, -400.0f, 400.0f, 1.0f, 1000.0f);
     
     lightSpaceMatrix = lightProjection * lightView;
 
@@ -170,21 +170,13 @@ void Application::ShadowPass()
     glClear(GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
 
-
     shaders["depth"]->Use();
     scene.worldmesh.DrawDepth(*shaders["depth"], lightSpaceMatrix, scene.camera.Position);
 
     shaders["depthobject"]->Use();
     scene.monument.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
     scene.axolotl.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
-
-    if(thirdPersonMode)
-    {
-        scene.axolotl.DrawSingleDepth(*shaders["depthobject"], lightSpaceMatrix, PlayerModelMatrix());
-    }
-
     scene.reef.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
-    scene.islandPalms.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, width, height);
@@ -258,7 +250,6 @@ void Application::Run()
         scene.DailyCycle(currentFrame);
 
         scene.axolotl.Update(deltaTime);
-        scene.fish.Update(deltaTime, scene.camera.Position);
         scene.otter.Update(deltaTime, scene.camera.Position, scene.fish);
         glm::vec3 fishAvoidPosition = thirdPersonMode
             ? playerPosition
@@ -274,9 +265,16 @@ void Application::Run()
 
         ShadowPass();
 
-        if (drawRefRefl == true)
+
+        //Reflection drawn every 3 farmes to improve fps
+        if (drawRefRefl)
         {
-            drawReflectionsReflaction();
+            m_reflFrameCounter++;
+            if (m_reflFrameCounter >= 3)   
+            {
+                drawReflectionsReflaction();
+                m_reflFrameCounter = 0;
+            }
         }
 
 

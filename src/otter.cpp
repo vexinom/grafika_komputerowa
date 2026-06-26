@@ -336,7 +336,7 @@ void Otter::Draw(Shader& shader, const glm::mat4& view, const glm::mat4& project
     shader.SetVec3("sunDirection", sunDirection);
     shader.SetVec3("tint", glm::vec3(1.0f));
 
-    int loc = glGetUniformLocation(shader.ID, "jointMatrices");
+    int loc = shader.GetUniformLocation("jointMatrices");
     glUniformMatrix4fv(loc, jointCount, GL_FALSE, jointUpload.data());
 
     glActiveTexture(GL_TEXTURE0);

@@ -73,7 +73,8 @@ class Application
         bool pauseKeyDown = false;
         bool pokeMouseDown = false;
         bool otterCycleKeyDown = false;
-        bool otterStopKeyDown = false;        bool rKeyDown = false;
+        bool otterStopKeyDown = false;        
+        bool rKeyDown = false;
 
         bool teleportKeyDown = false;
         bool teleportToFish = false;   // false: nastepny H -> axolotl, true: nastepny H -> ryba
@@ -89,4 +90,6 @@ class Application
         int windowedPosY = 100;
         int windowedWidth = 1280;
         int windowedHeight = 720;
+
+        int m_reflFrameCounter = 0;
 };

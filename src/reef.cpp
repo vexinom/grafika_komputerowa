@@ -383,7 +383,8 @@ void Reef::Draw(Shader& shader, const glm::mat4& view, const glm::mat4& projecti
     for (size_t i = 0; i < instances.size(); i++)
     {
         const Instance& inst = instances[i];
-        if (glm::distance(cameraPos, inst.pos) > 1300.0f) continue;
+        glm::vec3 diff = cameraPos - inst.pos;
+        if (glm::dot(diff, diff) > 1300.0f * 1300.0f) continue;
         if (inst.mesh != lastMesh)
         {
             const Mesh& mref = meshes[inst.mesh];
