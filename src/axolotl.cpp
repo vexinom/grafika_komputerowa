@@ -351,38 +351,7 @@ glm::mat4 Axolotl::ModelMatrix(const glm::vec3& position, const glm::vec3& forwa
 
 void Axolotl::DrawSingle(Shader& shader, const glm::mat4& view, const glm::mat4& projection, const glm::vec3& sunDirection, const glm::vec3& cameraPos, const glm::mat4& lightSpaceMatrix, unsigned int shadowMap, const glm::mat4& model)
 {
-    shader.Use();
-    shader.SetMat4("view", view);
-    shader.SetMat4("projection", projection);
-    shader.SetMat4("lightSpaceMatrix", lightSpaceMatrix);
-    shader.SetVec3("sunDirection", sunDirection);
-    shader.SetVec3("cameraPos", cameraPos);
-    shader.SetVec3("headlightPos", HeadlightPosition());
-    shader.SetVec3("headlightColor", glm::vec3(1.6f, 1.5f, 1.2f));
-    shader.SetFloat("time", animTime);
-    shader.SetFloat("bodyMinY", bodyMinY);
-    shader.SetFloat("bodyLenY", bodyLenY);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, baseColorTex);
-    shader.SetInt("baseColor", 0);
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, opacityTex);
-    shader.SetInt("opacity", 1);
-
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, metallicTex);
-    shader.SetInt("metallicMap", 2);
-
-    glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_2D, roughnessTex);
-    shader.SetInt("roughnessMap", 3);
-
-    glActiveTexture(GL_TEXTURE5);
-    glBindTexture(GL_TEXTURE_2D, shadowMap);
-    shader.SetInt("shadowMap", 5);
-
+    BindShaderState(shader, view, projection, sunDirection, cameraPos, lightSpaceMatrix, shadowMap);
     glBindVertexArray(VAO);
     shader.SetMat4("model", model);
     glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
@@ -413,34 +382,7 @@ void Axolotl::Poke(const glm::vec3& from)
 
 void Axolotl::Draw(Shader& shader, const glm::mat4& view, const glm::mat4& projection, const glm::vec3& sunDirection, const glm::vec3& cameraPos, const glm::mat4& lightSpaceMatrix, unsigned int shadowMap)
 {
-    shader.Use();
-    shader.SetMat4("view", view);
-    shader.SetMat4("projection", projection);
-    shader.SetMat4("lightSpaceMatrix", lightSpaceMatrix);
-    shader.SetVec3("sunDirection", sunDirection);
-    shader.SetVec3("cameraPos", cameraPos);
-    shader.SetVec3("headlightPos", HeadlightPosition());
-    shader.SetVec3("headlightColor", glm::vec3(1.6f, 1.5f, 1.2f));
-    shader.SetFloat("time", animTime);
-    shader.SetFloat("bodyMinY", bodyMinY);
-    shader.SetFloat("bodyLenY", bodyLenY);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, baseColorTex);
-    shader.SetInt("baseColor", 0);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, opacityTex);
-    shader.SetInt("opacity", 1);
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, metallicTex);
-    shader.SetInt("metallicMap", 2);
-    glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_2D, roughnessTex);
-    shader.SetInt("roughnessMap", 3);
-    glActiveTexture(GL_TEXTURE5);
-    glBindTexture(GL_TEXTURE_2D, shadowMap);
-    shader.SetInt("shadowMap", 5);
-
+    BindShaderState(shader, view, projection, sunDirection, cameraPos, lightSpaceMatrix, shadowMap);
     glBindVertexArray(VAO);
     for (size_t k = 0; k < instances.size(); k++)
     {
@@ -481,4 +423,27 @@ glm::vec3 Axolotl::NearestTo(const glm::vec3& point) const
 glm::vec3 Axolotl::HeadlightPosition() const
 {
     return instances[0].currentPos + instances[0].forward * 22.0f;
+}
+
+
+void Axolotl::BindShaderState(Shader& shader, const glm::mat4& view, const glm::mat4& projection,
+                               const glm::vec3& sunDirection, const glm::vec3& cameraPos,
+                               const glm::mat4& lightSpaceMatrix, unsigned int shadowMap)
+{
+    shader.Use();
+    shader.SetMat4("view", view);
+    shader.SetMat4("projection", projection);
+    shader.SetMat4("lightSpaceMatrix", lightSpaceMatrix);
+    shader.SetVec3("sunDirection", sunDirection);
+    shader.SetVec3("cameraPos", cameraPos);
+    shader.SetVec3("headlightPos", HeadlightPosition());
+    shader.SetVec3("headlightColor", glm::vec3(1.6f, 1.5f, 1.2f));
+    shader.SetFloat("time", animTime);
+    shader.SetFloat("bodyMinY", bodyMinY);
+    shader.SetFloat("bodyLenY", bodyLenY);
+    glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, baseColorTex); shader.SetInt("baseColor", 0);
+    glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, opacityTex);   shader.SetInt("opacity", 1);
+    glActiveTexture(GL_TEXTURE2); glBindTexture(GL_TEXTURE_2D, metallicTex);  shader.SetInt("metallicMap", 2);
+    glActiveTexture(GL_TEXTURE3); glBindTexture(GL_TEXTURE_2D, roughnessTex); shader.SetInt("roughnessMap", 3);
+    glActiveTexture(GL_TEXTURE5); glBindTexture(GL_TEXTURE_2D, shadowMap);    shader.SetInt("shadowMap", 5);
 }

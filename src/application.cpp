@@ -178,7 +178,8 @@ void Application::ShadowPass()
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);          // make sure depth writes are on, or the map stays empty
     glClear(GL_DEPTH_BUFFER_BIT);
-    glDisable(GL_CULL_FACE);       // keep thin / one-sided meshes (palms) in shadow map
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
 
 
     shaders["depth"]->Use();
@@ -187,14 +188,7 @@ void Application::ShadowPass()
     shaders["depthobject"]->Use();
     scene.monument.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
     scene.axolotl.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
-
-    if(thirdPersonMode)
-    {
-        scene.axolotl.DrawSingleDepth(*shaders["depthobject"], lightSpaceMatrix, PlayerModelMatrix());
-    }
-
     scene.reef.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
-    scene.islandPalms.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
 
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
@@ -271,7 +265,6 @@ void Application::Run()
         scene.DailyCycle(currentFrame);
 
         scene.axolotl.Update(deltaTime);
-        scene.fish.Update(deltaTime, scene.camera.Position);
         scene.otter.Update(deltaTime, scene.camera.Position, scene.fish);
         glm::vec3 fishAvoidPosition = thirdPersonMode
             ? playerPosition
@@ -287,9 +280,16 @@ void Application::Run()
 
         ShadowPass();
 
-        if (drawRefRefl == true)
+
+        //Reflection drawn every 3 farmes to improve fps
+        if (drawRefRefl)
         {
-            drawReflectionsReflaction();
+            m_reflFrameCounter++;
+            if (m_reflFrameCounter >= 3)   
+            {
+                drawReflectionsReflaction();
+                m_reflFrameCounter = 0;
+            }
         }
 
 
