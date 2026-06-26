@@ -9,7 +9,7 @@ void Scene::Init()
     skydome.Init();
     cubemap.Init();
     tube.Init();
-    monument.Init(1320.0f, 1700.0f, -10.0f, 50.0f);   // ruined pillar on the shelf
+    monument.Init(1870.0f, 1450.0f, 460.0f, 510.0f);   // ruined pillar on the shelf
     axolotl.Init();
     fish.Init();
     otter.Init();

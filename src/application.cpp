@@ -175,6 +175,7 @@ void Application::ShadowPass()
     glClear(GL_DEPTH_BUFFER_BIT);
     glCullFace(GL_FRONT);          // cast from back faces -> kills terrain self-shadow acne
 
+
     shaders["depth"]->Use();
     scene.worldmesh.DrawDepth(*shaders["depth"], lightSpaceMatrix, scene.camera.Position);
 
@@ -310,8 +311,9 @@ void Application::Run()
         drawUnderwaterObjects(view, projection, fakeClipPlane);
         scene.tube.Draw(*shaders["tube"], view, projection, scene.sun.direction, scene.camera.Position);
 
+        glFrontFace(GL_CW);
         scene.monument.Draw(*shaders["object"], view, projection, scene.sun.direction, scene.camera.Position);
-
+        glFrontFace(GL_CCW);
         
         
         scene.reef.Draw(*shaders["reef"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap, headlightPos, headlightColor);
