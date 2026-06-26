@@ -16,6 +16,7 @@ void Scene::Init()
     reef.Init();
     islandPalms.Init();
     particles.Init(2400);
+    seagull.Init(monument.Center(), monument.Height());
 }
 
 

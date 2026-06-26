@@ -48,6 +48,7 @@ add_executable(computer_graphics
     src/reef.cpp
     src/seaweed.cpp
     src/particles.cpp
+    src/seagull.cpp
     src/waterFrameBuffers.cpp
 )
 

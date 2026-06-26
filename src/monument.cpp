@@ -48,6 +48,10 @@ void Monument::Init(float worldX, float worldZ, float baseY, float topY)
         const float terrainLift = 1.0f;
         const float sizeScale = targetHeight * lighthouse.invExtent;
 
+        // Anchor point for the shadow frustum: middle of the lighthouse body.
+        worldHeight = targetHeight;
+        worldCenter = glm::vec3(worldX, baseY + terrainLift + targetHeight * 0.5f, worldZ);
+
         modelMatrix = glm::mat4(1.0f);
         modelMatrix = glm::translate(modelMatrix, glm::vec3(worldX, baseY + terrainLift, worldZ));
         modelMatrix = glm::scale(modelMatrix, glm::vec3(sizeScale));
@@ -87,6 +91,9 @@ void Monument::Init(float worldX, float worldZ, float baseY, float topY)
 
         modelMatrix = glm::mat4(1.0f);
         useAlbedoTex = false;
+
+        worldHeight = (topY + capHeight) - baseY;
+        worldCenter = glm::vec3(worldX, baseY + worldHeight * 0.5f, worldZ);
     }
 
     vertexCount = (int)(vertices.size() / 8);

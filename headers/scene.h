@@ -13,6 +13,7 @@
 #include "seaweed.h"
 #include "islandPalms.h"
 #include "particles.h"
+#include "seagull.h"
 #include "shader.h"
 
 class Sun
@@ -40,6 +41,7 @@ class Scene
         Seaweed seaweed;
         IslandPalms islandPalms;
         Particles particles;
+        Seagull seagull;
         Sun sun;
 
         // user-controllable environment state (interactions)
@@ -50,4 +52,3 @@ class Scene
         void Init();
         void DailyCycle(float time);
 };
-
