@@ -16,10 +16,12 @@ float ShadowFactor(float NdotL)
 {
     vec3 proj = vFragPosLightSpace.xyz / vFragPosLightSpace.w * 0.5 + 0.5;
 
-    if (proj.x < 0.0 || proj.x > 1.0 || proj.y < 0.0 || proj.y > 1.0 || proj.z > 1.0)
+    if (proj.z > 1.0 || proj.z < 0.0 ||
+        proj.x < 0.0 || proj.x > 1.0 || proj.y < 0.0 || proj.y > 1.0)
         return 0.0;
 
-    float bias = max(0.01 * (1.0 - NdotL), 0.0010);
+    // Tight depth range + polygon-offset acne removal -> small bias is enough.
+    float bias = max(0.0015 * (1.0 - NdotL), 0.0005);
     vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
 
     float shadow = 0.0;

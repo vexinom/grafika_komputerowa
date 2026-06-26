@@ -58,10 +58,14 @@ float ShadowFactor(float NdotL)
 {
     vec3 proj = FragPosLightSpace.xyz / FragPosLightSpace.w * 0.5 + 0.5;
 
-    if (proj.x < 0.0 || proj.x > 1.0 || proj.y < 0.0 || proj.y > 1.0 || proj.z > 1.0)
+    if (proj.z > 1.0 || proj.z < 0.0 ||
+        proj.x < 0.0 || proj.x > 1.0 || proj.y < 0.0 || proj.y > 1.0)
         return 0.0;
 
-    float bias = max(0.02 * (1.0 - NdotL), 0.0020);
+    // Depth range is now tight (~2500 units) and acne is handled by polygon
+    // offset in the depth pass, so the receiver bias can stay tiny. A large bias
+    // here is what used to detach (peter-pan) the lighthouse shadow from its base.
+    float bias = max(0.0010 * (1.0 - NdotL), 0.0004);
     vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
 
     float shadow = 0.0;

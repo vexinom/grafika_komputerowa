@@ -159,18 +159,30 @@ bool Application::Init_Shadow()
 void Application::ShadowPass()
 {
     glm::vec3 lightDir = glm::normalize(scene.sun.direction);
-    glm::vec3 center = scene.camera.Position;
     glm::vec3 up = glm::abs(lightDir.y) > 0.99f ? glm::vec3(0.0f, 0.0f, 1.0f) : glm::vec3(0.0f, 1.0f, 0.0f);
 
-    // The light has to sit INSIDE its own depth range or the whole scene is clipped
-    // out of the shadow map (it was 10000 away with a 4000 far plane -> nothing was
-    // ever rendered, so nothing cast a shadow). Keep it a few thousand units back and
-    // give far enough room to cover the scene around the camera.
-    glm::mat4 lightView = glm::lookAt(center + lightDir * 3000.0f, center, up);
+    // Anchor the shadow frustum on the LIGHTHOUSE, not on the camera. With a
+    // camera-following frustum the lighthouse shadow used to swim, clip at the
+    // shadow-map edge and only occupy a few texels of a huge 4000x4000 footprint
+    // (so it looked blocky and detached). A tight box around the lighthouse keeps
+    // it stable and gives the cast shadow plenty of resolution.
+    glm::vec3 center = scene.monument.Center();
 
-    float orthoSize = 2000.0f;
-    glm::mat4 lightProjection = glm::ortho(-orthoSize, orthoSize, -orthoSize, orthoSize, 1.0f, 6000.0f);
-    
+    // Half-size of the orthographic box. Must cover the lighthouse body and the
+    // long ground shadow it casts when the sun is low.  ~900 units -> ~0.44
+    // world-units per texel at 4096 resolution.
+    const float orthoSize = 900.0f;
+
+    // Place the light just outside the box along the sun direction and bracket
+    // the depth range tightly around the lighthouse. A tight near/far keeps depth
+    // precision high so a small bias is enough (no peter-panning, no acne).
+    const float lightDistance = 1200.0f;
+    const float nearPlane = 1.0f;
+    const float farPlane = lightDistance + orthoSize + 400.0f;
+
+    glm::mat4 lightView = glm::lookAt(center + lightDir * lightDistance, center, up);
+    glm::mat4 lightProjection = glm::ortho(-orthoSize, orthoSize, -orthoSize, orthoSize, nearPlane, farPlane);
+
     lightSpaceMatrix = lightProjection * lightView;
 
     glViewport(0, 0, SHADOW_RESOLUTION, SHADOW_RESOLUTION);
@@ -178,9 +190,13 @@ void Application::ShadowPass()
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);          // make sure depth writes are on, or the map stays empty
     glClear(GL_DEPTH_BUFFER_BIT);
-    glEnable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
 
+    // Slope-scaled polygon offset pushes the caster depth slightly away from the
+    // light. This removes self-shadow acne at its source (in the depth map), so
+    // the receivers can use a tiny bias and the shadow stays glued to the base.
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(2.0f, 4.0f);
+    glDisable(GL_CULL_FACE);
 
     shaders["depth"]->Use();
     scene.worldmesh.DrawDepth(*shaders["depth"], lightSpaceMatrix, scene.camera.Position);
@@ -191,6 +207,7 @@ void Application::ShadowPass()
     scene.reef.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
     scene.islandPalms.DrawDepth(*shaders["depthobject"], lightSpaceMatrix);
 
+    glDisable(GL_POLYGON_OFFSET_FILL);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
 
@@ -273,6 +290,7 @@ void Application::Run()
 
         scene.fish.Update(deltaTime, fishAvoidPosition);
         scene.particles.Update(deltaTime, scene.camera.Position, currentFrame, scene.current);
+        scene.seagull.Update(currentFrame);
 
         glm::vec3 headlightPos = scene.axolotl.HeadlightPosition();
         glm::vec3 headlightColor = scene.headlightOn ? glm::vec3(1.6f, 1.5f, 1.2f) : glm::vec3(0.0f);
@@ -341,6 +359,8 @@ void Application::Run()
         scene.fish.Draw(*shaders["fish"], view, projection, scene.sun.direction, scene.camera.Position);
 
         scene.otter.Draw(*shaders["otter"], view, projection, scene.sun.direction, scene.camera.Position);
+
+        scene.seagull.Draw(*shaders["seagull"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap);
 
         glDisable(GL_CULL_FACE);
         if (useCubemap)
@@ -735,6 +755,7 @@ void Application::shadersInit()
     shaders["reef"] = new Shader("shaders/reef_vertex.glsl", "shaders/reef_fragment.glsl");
     shaders["seaweed"] = new Shader("shaders/seaweed_vertex.glsl", "shaders/seaweed_fragment.glsl");
     shaders["particle"] = new Shader("shaders/particle_vertex.glsl", "shaders/particle_fragment.glsl");
+    shaders["seagull"] = new Shader("shaders/seagull_vertex.glsl", "shaders/seagull_fragment.glsl");
 }
 
 void Application::drawReflectionsReflaction()
@@ -772,6 +793,19 @@ void Application::drawReflectionsReflaction()
     else
         scene.skydome.Draw(*shaders["skydome"], reflectViewProj, scene.camera.Position, scene.sun.direction, glfwGetTime(), scene.watermesh.waterLevel);
 
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+
+    // Above-water objects (lighthouse, palms, seagulls) also have to show up in
+    // the water reflection. They sit above the waterline so the reflection clip
+    // plane is irrelevant -> disable it, and draw them double-sided because the
+    // mirrored reflection view flips triangle winding.
+    glDisable(GL_CLIP_DISTANCE0);
+    glDisable(GL_CULL_FACE);
+    scene.monument.Draw(*shaders["object"], reflectView, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap);
+    scene.islandPalms.Draw(*shaders["palm"], reflectView, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap);
+    scene.seagull.Draw(*shaders["seagull"], reflectView, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap);
+    glEnable(GL_CLIP_DISTANCE0);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
 
