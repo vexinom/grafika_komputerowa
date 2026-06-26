@@ -20,5 +20,7 @@ class Monument
         unsigned int VAO = 0;
         unsigned int VBO = 0;
         int vertexCount = 0;
+        unsigned int albedoTex = 0;
+        bool useAlbedoTex = false;
         glm::mat4 modelMatrix = glm::mat4(1.0f);
 };

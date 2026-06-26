@@ -4,9 +4,12 @@ out vec4 FragColor;
 in vec3 FragPos;
 in vec3 Normal;
 in vec4 FragPosLightSpace;
+in vec2 UV;
 
 uniform vec3 sunDirection;
 uniform vec3 cameraPos;
+uniform sampler2D albedoMap;
+uniform int useAlbedoMap;
 uniform sampler2D shadowMap;
 
 float ShadowFactor(float NdotL)
@@ -47,6 +50,10 @@ void main()
     float specular = pow(max(dot(N, H), 0.0), 32.0) * sunIntensity * (1.0 - 0.55 * shadow);
 
     vec3 baseColor = vec3(0.55, 0.55, 0.58);
+    if (useAlbedoMap == 1)
+    {
+        baseColor = texture(albedoMap, UV).rgb;
+    }
     vec3 color = baseColor * (0.18 + diffuse) + vec3(1.0) * specular * 0.25;
 
     FragColor = vec4(color, 1.0);

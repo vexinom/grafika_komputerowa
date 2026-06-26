@@ -319,9 +319,11 @@ void Application::Run()
         drawUnderwaterObjects(view, projection, fakeClipPlane);
         scene.tube.Draw(*shaders["tube"], view, projection, scene.sun.direction, scene.camera.Position);
 
+        glDisable(GL_CULL_FACE);
         glFrontFace(GL_CW);
         scene.monument.Draw(*shaders["object"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap);
         glFrontFace(GL_CCW);
+        glEnable(GL_CULL_FACE);
         
         
         scene.reef.Draw(*shaders["reef"], view, projection, scene.sun.direction, scene.camera.Position, lightSpaceMatrix, shadowMap, headlightPos, headlightColor);

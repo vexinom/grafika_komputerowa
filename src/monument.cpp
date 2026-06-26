@@ -16,6 +16,7 @@ static void PushTriangle(std::vector<float>& out, const glm::vec3& a, const glm:
     {
         out.push_back(p[i].x); out.push_back(p[i].y); out.push_back(p[i].z);
         out.push_back(n.x); out.push_back(n.y); out.push_back(n.z);
+        out.push_back(0.0f); out.push_back(0.0f);
     }
 }
 
@@ -39,17 +40,21 @@ void Monument::Init(float worldX, float worldZ, float baseY, float topY)
             vertices.push_back(lighthouse.interleaved[base + 3]);
             vertices.push_back(lighthouse.interleaved[base + 4]);
             vertices.push_back(lighthouse.interleaved[base + 5]);
+            vertices.push_back(lighthouse.interleaved[base + 6]);
+            vertices.push_back(lighthouse.interleaved[base + 7]);
         }
 
-        const float targetHeight = 120.0f;
+        const float targetHeight = 178.0f;
+        const float terrainLift = 1.0f;
         const float sizeScale = targetHeight * lighthouse.invExtent;
-        const float oldHeight = glm::max(1.0f, topY - baseY);
 
         modelMatrix = glm::mat4(1.0f);
-        modelMatrix = glm::translate(modelMatrix, glm::vec3(worldX, baseY, worldZ));
+        modelMatrix = glm::translate(modelMatrix, glm::vec3(worldX, baseY + terrainLift, worldZ));
         modelMatrix = glm::scale(modelMatrix, glm::vec3(sizeScale));
         modelMatrix = glm::translate(modelMatrix, glm::vec3(-lighthouse.center.x, -lighthouse.minY, -lighthouse.center.z));
-        modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, -oldHeight * 0.1f, 0.0f));
+
+        albedoTex = LoadTexture("assets/lighthouse/textures/Lighthouse_Low_blinn1SG_BaseColor.png", true);
+        useAlbedoTex = true;
     }
     else
     {
@@ -81,9 +86,10 @@ void Monument::Init(float worldX, float worldZ, float baseY, float topY)
         }
 
         modelMatrix = glm::mat4(1.0f);
+        useAlbedoTex = false;
     }
 
-    vertexCount = (int)(vertices.size() / 6);
+    vertexCount = (int)(vertices.size() / 8);
 
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -91,9 +97,11 @@ void Monument::Init(float worldX, float worldZ, float baseY, float topY)
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
     glBindVertexArray(0);
 }
 
@@ -112,9 +120,13 @@ void Monument::Draw(Shader& shader,
     shader.SetVec3("cameraPos", cameraPos);
     shader.SetMat4("model", modelMatrix);
     shader.SetMat4("lightSpaceMatrix", lightSpaceMatrix);
-    shader.SetInt("shadowMap", 0);
+    shader.SetInt("albedoMap", 0);
+    shader.SetInt("useAlbedoMap", useAlbedoTex ? 1 : 0);
+    shader.SetInt("shadowMap", 1);
 
     glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, useAlbedoTex ? albedoTex : 0);
+    glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, shadowMap);
 
     glBindVertexArray(VAO);
