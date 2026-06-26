@@ -1,6 +1,9 @@
 #include "monument.h"
 #include <vector>
 #include <glad/glad.h>
+#include <glm/gtc/matrix_transform.hpp>
+
+#include "objloader.h"
 
 static void PushTriangle(std::vector<float>& out, const glm::vec3& a, const glm::vec3& b, const glm::vec3& c, const glm::vec3& axis)
 {
@@ -18,32 +21,66 @@ static void PushTriangle(std::vector<float>& out, const glm::vec3& a, const glm:
 
 void Monument::Init(float worldX, float worldZ, float baseY, float topY)
 {
-    float baseHalf = 7.0f;
-    float topHalf = 3.5f;
-    float capHeight = 22.0f;
-    glm::vec3 axis(worldX, 0.0f, worldZ);
-
-    glm::vec3 ring0[4] = {
-        glm::vec3(worldX - baseHalf, baseY, worldZ - baseHalf),
-        glm::vec3(worldX + baseHalf, baseY, worldZ - baseHalf),
-        glm::vec3(worldX + baseHalf, baseY, worldZ + baseHalf),
-        glm::vec3(worldX - baseHalf, baseY, worldZ + baseHalf)
-    };
-    glm::vec3 ring1[4] = {
-        glm::vec3(worldX - topHalf, topY, worldZ - topHalf),
-        glm::vec3(worldX + topHalf, topY, worldZ - topHalf),
-        glm::vec3(worldX + topHalf, topY, worldZ + topHalf),
-        glm::vec3(worldX - topHalf, topY, worldZ + topHalf)
-    };
-    glm::vec3 apex(worldX, topY + capHeight, worldZ);
-
     std::vector<float> vertices;
-    for (int k = 0; k < 4; k++)
+
+    ObjMesh lighthouse;
+    bool ok = LoadObj("assets/lighthouse/source/Lighthouse_Low.obj", lighthouse);
+
+    if (ok)
     {
-        int n = (k + 1) % 4;
-        PushTriangle(vertices, ring0[k], ring0[n], ring1[n], axis);
-        PushTriangle(vertices, ring0[k], ring1[n], ring1[k], axis);
-        PushTriangle(vertices, ring1[k], ring1[n], apex, axis);
+        for (size_t i = 0; i < lighthouse.indices.size(); ++i)
+        {
+            unsigned int idx = lighthouse.indices[i];
+            size_t base = static_cast<size_t>(idx) * 8;
+
+            vertices.push_back(lighthouse.interleaved[base + 0]);
+            vertices.push_back(lighthouse.interleaved[base + 1]);
+            vertices.push_back(lighthouse.interleaved[base + 2]);
+            vertices.push_back(lighthouse.interleaved[base + 3]);
+            vertices.push_back(lighthouse.interleaved[base + 4]);
+            vertices.push_back(lighthouse.interleaved[base + 5]);
+        }
+
+        const float targetHeight = 120.0f;
+        const float sizeScale = targetHeight * lighthouse.invExtent;
+        const float oldHeight = glm::max(1.0f, topY - baseY);
+
+        modelMatrix = glm::mat4(1.0f);
+        modelMatrix = glm::translate(modelMatrix, glm::vec3(worldX, baseY, worldZ));
+        modelMatrix = glm::scale(modelMatrix, glm::vec3(sizeScale));
+        modelMatrix = glm::translate(modelMatrix, glm::vec3(-lighthouse.center.x, -lighthouse.minY, -lighthouse.center.z));
+        modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, -oldHeight * 0.1f, 0.0f));
+    }
+    else
+    {
+        float baseHalf = 7.0f;
+        float topHalf = 3.5f;
+        float capHeight = 22.0f;
+        glm::vec3 axis(worldX, 0.0f, worldZ);
+
+        glm::vec3 ring0[4] = {
+            glm::vec3(worldX - baseHalf, baseY, worldZ - baseHalf),
+            glm::vec3(worldX + baseHalf, baseY, worldZ - baseHalf),
+            glm::vec3(worldX + baseHalf, baseY, worldZ + baseHalf),
+            glm::vec3(worldX - baseHalf, baseY, worldZ + baseHalf)
+        };
+        glm::vec3 ring1[4] = {
+            glm::vec3(worldX - topHalf, topY, worldZ - topHalf),
+            glm::vec3(worldX + topHalf, topY, worldZ - topHalf),
+            glm::vec3(worldX + topHalf, topY, worldZ + topHalf),
+            glm::vec3(worldX - topHalf, topY, worldZ + topHalf)
+        };
+        glm::vec3 apex(worldX, topY + capHeight, worldZ);
+
+        for (int k = 0; k < 4; k++)
+        {
+            int n = (k + 1) % 4;
+            PushTriangle(vertices, ring0[k], ring0[n], ring1[n], axis);
+            PushTriangle(vertices, ring0[k], ring1[n], ring1[k], axis);
+            PushTriangle(vertices, ring1[k], ring1[n], apex, axis);
+        }
+
+        modelMatrix = glm::mat4(1.0f);
     }
 
     vertexCount = (int)(vertices.size() / 6);
@@ -73,6 +110,7 @@ void Monument::Draw(Shader& shader,
     shader.SetMat4("projection", projection);
     shader.SetVec3("sunDirection", sunDirection);
     shader.SetVec3("cameraPos", cameraPos);
+    shader.SetMat4("model", modelMatrix);
     shader.SetMat4("lightSpaceMatrix", lightSpaceMatrix);
     shader.SetInt("shadowMap", 0);
 
@@ -87,7 +125,7 @@ void Monument::Draw(Shader& shader,
 void Monument::DrawDepth(Shader& shader, const glm::mat4& lightSpaceMatrix)
 {
     shader.SetMat4("lightSpaceMatrix", lightSpaceMatrix);
-    shader.SetMat4("model", glm::mat4(1.0f));
+    shader.SetMat4("model", modelMatrix);
 
     glBindVertexArray(VAO);
     glDrawArrays(GL_TRIANGLES, 0, vertexCount);
