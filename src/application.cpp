@@ -371,9 +371,10 @@ void Application::Run()
         double currentTime = glfwGetTime();
         if (currentTime - lastTime >= 1.0)
         {
-            char title[128];
+            char title[192];
 
-            snprintf(title, sizeof(title), "OpenGL Terrain | FPS: %d", frameCount);
+            snprintf(title, sizeof(title), "OpenGL Terrain | FPS: %d | terrain roughness: %.2f | terrain metallic: %.2f", frameCount,
+                scene.worldmesh.roughness, scene.worldmesh.metallic);
             glfwSetWindowTitle(window, title);
             
             frameCount = 0;

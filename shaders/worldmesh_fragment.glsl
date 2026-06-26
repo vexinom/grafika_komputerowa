@@ -61,7 +61,7 @@ float ShadowFactor(float NdotL)
     if (proj.x < 0.0 || proj.x > 1.0 || proj.y < 0.0 || proj.y > 1.0 || proj.z > 1.0)
         return 0.0;
 
-    float bias = max(0.005 * (1.0 - NdotL), 0.0005); 
+    float bias = max(0.02 * (1.0 - NdotL), 0.0020);
     vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
 
     float shadow = 0.0;
@@ -73,7 +73,7 @@ float ShadowFactor(float NdotL)
             shadow += (proj.z - bias > pcfDepth) ? 1.0 : 0.0;
         }
     }
-    return shadow / 9.0;
+    return min(shadow / 9.0, 0.75);
 }
 
 void main()
@@ -106,16 +106,32 @@ void main()
     float sunIntensity = smoothstep(-0.1, 0.1, L.y);
     vec3 radiance = sunColor * sunIntensity;
 
-    vec3 F0 = mix(vec3(0.04), albedo, metallic);
-    float D = DistributionGGX(N, H, roughness * roughness);
-    float G = GeometrySmith(N, V, L, roughness);
+    // Slight local roughness variation from terrain grain gives visible glints/spots.
+    float roughnessLocal = clamp(roughness * mix(0.60, 1.25, grain), 0.04, 1.0);
+    float glintMask = smoothstep(0.74, 0.98, grain) * (1.0 - roughnessLocal);
+
+    // Terrain albedo is not metallic by nature, so avoid tinting F0 too strongly by albedo.
+    vec3 dielectricF0 = vec3(0.04);
+    vec3 metalTint = mix(vec3(0.62), albedo, 0.35);
+    vec3 F0 = mix(dielectricF0, metalTint, metallic);
+
+    float D = DistributionGGX(N, H, roughnessLocal * roughnessLocal);
+    float G = GeometrySmith(N, V, L, roughnessLocal);
     vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
 
-    vec3 specular = D * G * F / max(4.0 * max(dot(N, V), 0.0) * NdotL, 0.001);
-    vec3 kd = (vec3(1.0) - F) * (1.0 - metallic);
+    vec3 specular = (D * G * F / max(4.0 * max(dot(N, V), 0.0) * NdotL, 0.001)) * 1.45;
+    vec3 kd = (vec3(1.0) - F) * (1.0 - 0.75 * metallic);
 
     float shadow = ShadowFactor(NdotL);
-    vec3 direct = (kd * albedo / PI + specular) * radiance * NdotL * (1.0 - shadow);
+    float diffuseVisibility = 1.0 - shadow;
+    float specVisibility = 1.0 - 0.45 * shadow;
+    vec3 directDiffuse = kd * albedo / PI * radiance * NdotL * diffuseVisibility;
+    vec3 directSpecular = specular * radiance * NdotL * specVisibility;
+    vec3 direct = directDiffuse + directSpecular;
+
+    // Extra high-frequency sun glints so highlights are clearly visible on terrain.
+    float sunMirror = pow(max(dot(reflect(-L, N), V), 0.0), mix(18.0, 240.0, 1.0 - roughnessLocal));
+    vec3 sunGlints = sunColor * sunIntensity * (0.25 + 1.9 * metallic) * sunMirror * (0.25 + 2.2 * glintMask) * specVisibility;
 
     vec3 ambientDay = vec3(0.3, 0.3, 0.3);
     vec3 ambientNightUnderwater = vec3(0.15, 0.15, 0.25); 
@@ -125,16 +141,37 @@ void main()
     vec3 currentAmbientNight = mix(ambientNightUnderwater, ambientNightAboveWater, aboveWaterMask);
 
     vec3 ambientColor = mix(currentAmbientNight, ambientDay, sunIntensity);
-    vec3 ambient = albedo * ambientColor;
 
-    vec3 color = ambient + direct;
+    // Ambient PBR approximation so metallic/roughness still influence the terrain
+    // when direct sunlight is weak or shadowed.
+    float NdotV = max(dot(N, V), 0.0);
+    vec3 F_ambient = FresnelSchlick(NdotV, F0);
+    vec3 kdAmbient = (vec3(1.0) - F_ambient) * (1.0 - 0.70 * metallic);
+    vec3 ambientDiffuse = kdAmbient * albedo * ambientColor;
+    vec3 ambientSpecular = F_ambient * ambientColor * mix(0.36, 0.06, roughnessLocal);
+    vec3 ambient = ambientDiffuse + ambientSpecular;
+
+    vec3 color = ambient + direct + sunGlints;
 
     vec3 toHeadlight = headlightPos - WorldPos;
     float hd = length(toHeadlight);
     float hatt = 1.0 / (1.0 + 0.0006 * hd * hd);
-    if (Height < water_level)
+    if (Height < water_level && hd > 0.001)
     {
-        color += albedo * headlightColor * max(dot(N, toHeadlight / hd), 0.0) * hatt;
+        vec3 Lh = toHeadlight / hd;
+        vec3 Hh = normalize(V + Lh);
+        float NdotLh = max(dot(N, Lh), 0.0);
+        vec3 Fh = FresnelSchlick(max(dot(Hh, V), 0.0), F0);
+        float Dh = DistributionGGX(N, Hh, roughnessLocal * roughnessLocal);
+        float Gh = GeometrySmith(N, V, Lh, roughnessLocal);
+        vec3 specHeadlight = (Dh * Gh * Fh / max(4.0 * max(dot(N, V), 0.0) * NdotLh, 0.001)) * 1.55;
+        vec3 kdHeadlight = (vec3(1.0) - Fh) * (1.0 - 0.75 * metallic);
+
+        float headMirror = pow(max(dot(reflect(-Lh, N), V), 0.0), mix(14.0, 180.0, 1.0 - roughnessLocal));
+        vec3 headGlints = headlightColor * (0.35 + 2.4 * metallic) * headMirror * (0.25 + 2.0 * glintMask) * NdotLh * hatt;
+
+        color += (kdHeadlight * albedo / PI + specHeadlight) * headlightColor * NdotLh * hatt;
+        color += headGlints;
     }
     
     color = color / (color + vec3(1.0));
