@@ -37,6 +37,8 @@ void main()
     if(texColor.a < 0.1)
         discard;
 
+    texColor.rgb = mix(texColor.rgb, vec3(0.192, 0.78, 0.278), 0.25);
+
     vec3 norm = normalize(Normal);
     vec3 lightDir = normalize(sunDirection);
 
