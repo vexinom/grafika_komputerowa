@@ -304,7 +304,7 @@ void Application::Run()
         if (drawRefRefl)
         {
             m_reflFrameCounter++;
-            if (m_reflFrameCounter >= 2)   
+            if (m_reflFrameCounter >= 1)   
             {
                 drawReflectionsReflaction();
                 m_reflFrameCounter = 0;
